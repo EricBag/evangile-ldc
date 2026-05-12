@@ -111,7 +111,7 @@ html, body, .stApp,
 [data-testid="stHeader"],
 [data-testid="stMain"],
 .main, section.main {
-    background-color: #ffffff !important;
+    background-color: #faf9f4 !important;
     color: #111827 !important;
 }
 .stApp * {
