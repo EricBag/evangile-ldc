@@ -105,6 +105,18 @@ CUSTOM_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
 
+/* Forcer le th\u00e8me clair (pour les navigateurs en mode sombre) */
+html, body, .stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stHeader"],
+[data-testid="stMain"],
+.main, section.main {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+}
+.stApp * {
+    color: inherit;
+}
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header[data-testid="stHeader"] {height: 0; visibility: hidden;}
