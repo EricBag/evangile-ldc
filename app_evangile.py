@@ -175,7 +175,7 @@ input[type="password"], input[type="text"] {
     transition: all 0.15s ease !important;
 }
 .stButton > button:hover {
-    background-color: #374151 !important;
+    background-color: #111827 !important;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(17, 24, 39, 0.12) !important;
 }
@@ -415,7 +415,7 @@ if launch:
                         unsafe_allow_html=True,
                     )
                     st.markdown(
-                        f"<p style='color:#374151; line-height:1.7;'>{p['explication']}</p>",
+                        f"<p style='color:#111827; line-height:1.7;'>{p['explication']}</p>",
                         unsafe_allow_html=True,
                     )
 
