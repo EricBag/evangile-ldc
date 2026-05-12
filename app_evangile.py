@@ -202,14 +202,18 @@ input[type="password"], input[type="text"] {
 }
 
 blockquote {
-    border-left: 2px solid #d1d5db !important;
-    padding: 0.2rem 0 0.2rem 1.2rem !important;
-    margin: 0.8rem 0 !important;
-    color: #1f2937 !important;
-    font-family: 'Cormorant Garamond', Georgia, serif !important;
-    font-size: 1.15rem !important;
-    font-style: italic !important;
-    line-height: 1.65 !important;
+    border-left: 3px solid #9ca3af !important;
+    padding: 0.6rem 0 0.6rem 1.25rem !important;
+    margin: 1rem 0 !important;
+    color: #111827 !important;
+    font-family: 'Inter', -apple-system, sans-serif !important;
+    font-size: 1.05rem !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    line-height: 1.75 !important;
+    background: #fafafa !important;
+    border-radius: 0 8px 8px 0 !important;
+    padding-right: 1rem !important;
 }
 
 hr {
