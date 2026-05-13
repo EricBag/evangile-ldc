@@ -539,17 +539,31 @@ if launch:
 # Administration : vider le cache des évangiles
 # ============================================================
 
-st.markdown("<div style='margin-top:3rem;'></div>", unsafe_allow_html=True)
-with st.expander("Administration"):
-    nb_cached = 0
-    if CACHE_EVANGILES_DIR.exists():
-        nb_cached = sum(1 for _ in CACHE_EVANGILES_DIR.glob("*.json"))
-    st.markdown(
-        f"<p style='color:#6b7280; font-size:0.85rem; margin-bottom:0.6rem;'>"
-        f"Évangiles en cache : <strong>{nb_cached}</strong></p>",
-        unsafe_allow_html=True,
-    )
-    if st.button("Vider le cache des évangiles", key="clear_cache_btn"):
-        n = _clear_cache_evangiles()
-        st.success(f"Cache vidé : {n} fichier(s) supprimé(s).")
-        st.rerun()
+_ADMIN_PASSWORD = st.secrets.get("admin_password", "")
+if _ADMIN_PASSWORD:
+    st.markdown("<div style='margin-top:3rem;'></div>", unsafe_allow_html=True)
+    with st.expander("Administration"):
+        admin_pwd = st.text_input(
+            "Mot de passe administrateur",
+            type="password",
+            key="admin_pwd_input",
+        )
+        if admin_pwd and admin_pwd == _ADMIN_PASSWORD:
+            nb_cached = 0
+            if CACHE_EVANGILES_DIR.exists():
+                nb_cached = sum(1 for _ in CACHE_EVANGILES_DIR.glob("*.json"))
+            st.markdown(
+                f"<p style='color:#6b7280; font-size:0.85rem; margin-bottom:0.6rem;'>"
+                f"Évangiles en cache : <strong>{nb_cached}</strong></p>",
+                unsafe_allow_html=True,
+            )
+            if st.button("Vider le cache des évangiles", key="clear_cache_btn"):
+                n = _clear_cache_evangiles()
+                st.success(f"Cache vidé : {n} fichier(s) supprimé(s).")
+                st.rerun()
+        else:
+            st.markdown(
+                "<p style='color:#6b7280; font-size:0.85rem;'>"
+                "Accès restreint à l'administrateur.</p>",
+                unsafe_allow_html=True,
+            )
