@@ -7,7 +7,11 @@ Sortie = 2 extraits du Livre du Ciel + leurs éclairages.
 
 from pathlib import Path
 import os
+import re
+import json
 import base64
+import hashlib
+from datetime import datetime
 import streamlit as st
 
 # ============================================================
@@ -50,6 +54,72 @@ BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_PDF = BASE_DIR / "ldc.pdf"
 DEFAULT_CACHE = BASE_DIR / "ldc_index_word"
 LOGO_PATH = BASE_DIR / "logo.jpg"
+CACHE_EVANGILES_DIR = BASE_DIR / "cache_evangiles"
+
+
+# ============================================================
+# Cache des évangiles déjà analysés
+# ============================================================
+
+def _normalize_evangile_for_hash(text: str) -> str:
+    """Minuscule + espaces compactés. Accents conservés."""
+    text = text.lower()
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def _evangile_hash(text: str) -> str:
+    norm = _normalize_evangile_for_hash(text)
+    return hashlib.sha256(norm.encode("utf-8")).hexdigest()
+
+
+def _cache_path(text: str) -> Path:
+    return CACHE_EVANGILES_DIR / f"{_evangile_hash(text)}.json"
+
+
+def _load_cached_passages(text: str):
+    path = _cache_path(text)
+    if not path.exists():
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        passages = data.get("passages")
+        if isinstance(passages, list) and passages:
+            return passages
+        return None
+    except Exception:
+        return None
+
+
+def _save_cached_passages(text: str, passages: list) -> None:
+    if not passages:
+        return
+    try:
+        CACHE_EVANGILES_DIR.mkdir(exist_ok=True)
+        path = _cache_path(text)
+        data = {
+            "cached_at": datetime.now().isoformat(timespec="seconds"),
+            "evangile_preview": text.strip()[:200],
+            "passages": passages,
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def _clear_cache_evangiles() -> int:
+    if not CACHE_EVANGILES_DIR.exists():
+        return 0
+    count = 0
+    for f in CACHE_EVANGILES_DIR.glob("*.json"):
+        try:
+            f.unlink()
+            count += 1
+        except Exception:
+            pass
+    return count
 
 
 # ============================================================
@@ -394,17 +464,32 @@ if launch:
         st.warning("Veuillez d'abord saisir le texte de l'évangile.")
         st.stop()
 
-    with st.spinner("Recherche dans le Livre du Ciel…"):
-        try:
-            passages = analyser_evangile(
-                evangile_text, dictees, segments, bm25, embs, cache_p,
-            )
-        except Exception as e:
-            st.error(f"Erreur lors de l'analyse : {e}")
-            st.stop()
+    from_cache = False
+    cached = _load_cached_passages(evangile_text)
+    if cached is not None:
+        passages = cached
+        from_cache = True
+    else:
+        with st.spinner("Recherche dans le Livre du Ciel…"):
+            try:
+                passages = analyser_evangile(
+                    evangile_text, dictees, segments, bm25, embs, cache_p,
+                )
+            except Exception as e:
+                st.error(f"Erreur lors de l'analyse : {e}")
+                st.stop()
+        _save_cached_passages(evangile_text, passages)
 
     st.markdown("<hr/>", unsafe_allow_html=True)
     st.markdown("<h2>Extraits du Livre du Ciel</h2>", unsafe_allow_html=True)
+
+    if from_cache:
+        st.markdown(
+            "<p style='color:#9ca3af; font-size:0.78rem; "
+            "margin-top:-0.4rem; margin-bottom:1rem; font-style:italic;'>"
+            "Résultat depuis le cache</p>",
+            unsafe_allow_html=True,
+        )
 
     if not passages:
         st.info("Aucun extrait pertinent trouvé pour ce texte.")
@@ -442,3 +527,23 @@ if launch:
                 mime="text/plain",
                 use_container_width=True,
             )
+
+
+# ============================================================
+# Administration : vider le cache des évangiles
+# ============================================================
+
+st.markdown("<div style='margin-top:3rem;'></div>", unsafe_allow_html=True)
+with st.expander("Administration"):
+    nb_cached = 0
+    if CACHE_EVANGILES_DIR.exists():
+        nb_cached = sum(1 for _ in CACHE_EVANGILES_DIR.glob("*.json"))
+    st.markdown(
+        f"<p style='color:#6b7280; font-size:0.85rem; margin-bottom:0.6rem;'>"
+        f"Évangiles en cache : <strong>{nb_cached}</strong></p>",
+        unsafe_allow_html=True,
+    )
+    if st.button("Vider le cache des évangiles", key="clear_cache_btn"):
+        n = _clear_cache_evangiles()
+        st.success(f"Cache vidé : {n} fichier(s) supprimé(s).")
+        st.rerun()
