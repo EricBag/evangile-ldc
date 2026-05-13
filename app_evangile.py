@@ -201,6 +201,12 @@ html, body, [class*="st-"], button, input, textarea {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
+[class*="material-symbols"],
+[class*="MaterialSymbols"],
+span[data-testid="stIconMaterial"] {
+    font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+}
+
 h1, h2, h3, h4 {
     font-family: 'Cormorant Garamond', Georgia, serif !important;
     font-weight: 500 !important;
