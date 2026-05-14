@@ -314,8 +314,89 @@ hr {
     border-radius: 10px !important;
     border: 1px solid #e5e7eb !important;
 }
+
+/* Forçage mode clair sur tous les inputs et le formulaire de mot de passe */
+.stTextInput input,
+.stTextInput input[type="password"],
+[data-testid="stTextInput"] input,
+[data-baseweb="input"] input,
+[data-baseweb="base-input"] {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border-color: #d1d5db !important;
+}
+.stTextInput label,
+[data-testid="stWidgetLabel"] {
+    color: #111827 !important;
+}
+
+/* Forcer le fond clair sur TOUS les wrappers BaseWeb du text_input */
+[data-testid="stTextInput"],
+[data-testid="stTextInput"] > div,
+[data-testid="stTextInput"] [data-baseweb="input"],
+[data-testid="stTextInput"] [data-baseweb="input"] > div,
+[data-testid="stTextInput"] [data-baseweb="base-input"],
+.stTextInput > div,
+.stTextInput [data-baseweb="input"],
+.stTextInput [data-baseweb="input"] > div {
+    background-color: #ffffff !important;
+}
+
+/* Neutraliser l'autofill navigateur (fond jaune/bleu sur champ password mémorisé) */
+.stTextInput input:-webkit-autofill,
+.stTextInput input:-webkit-autofill:hover,
+.stTextInput input:-webkit-autofill:focus,
+[data-testid="stTextInput"] input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+    -webkit-text-fill-color: #111827 !important;
+    caret-color: #111827 !important;
+}
+
+/* Masquer "Press Ctrl+Enter to apply" sous les text_area / text_input */
+[data-testid="InputInstructions"],
+[data-testid="stTextAreaInputInstructions"] {
+    display: none !important;
+}
+
+/* Masquer le bouton "Manage app" et badges Streamlit Cloud */
+[data-testid="manage-app-button"],
+[data-testid="manage-app-button-container"],
+.stAppDeployButton,
+.viewerBadge_container__1QSob,
+.viewerBadge_link__qRIco {
+    display: none !important;
+}
 </style>
 """
+/* Hide "Press Ctrl+Enter to apply" hint */
+[data-testid="InputInstructions"],
+[data-testid="stTextAreaInputInstructions"] {
+    display: none !important;
+}
+
+/* Hide "Manage app" button */
+[data-testid="manage-app-button"],
+[data-testid="manage-app-button-container"],
+.stAppDeployButton,
+.viewerBadge_container__1QSob,
+.viewerBadge_link__qRIco {
+    display: none !important;
+}
+
+/* Force light mode on password input and all inputs */
+.stTextInput input,
+.stTextInput input[type="password"],
+[data-testid="stTextInput"] input,
+[data-baseweb="input"] input,
+[data-baseweb="base-input"] {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border-color: #d1d5db !important;
+}
+.stTextInput label,
+[data-testid="stWidgetLabel"] {
+    color: #111827 !important;
+}
 
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
