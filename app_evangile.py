@@ -366,8 +366,6 @@ hr {
 .viewerBadge_link__qRIco {
     display: none !important;
 }
-</style>
-"""
 /* Hide "Press Ctrl+Enter to apply" hint */
 [data-testid="InputInstructions"],
 [data-testid="stTextAreaInputInstructions"] {
@@ -396,7 +394,9 @@ hr {
 .stTextInput label,
 [data-testid="stWidgetLabel"] {
     color: #111827 !important;
-}
+}</style>
+"""
+
 
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
