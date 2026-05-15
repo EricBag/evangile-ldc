@@ -18,7 +18,6 @@ import re
 import json
 import argparse
 import pickle
-import hashlib
 from dataclasses import dataclass
 from typing import List, Tuple, Dict, Optional
 
@@ -151,14 +150,11 @@ class Segment:
 #  MOTIFS DYNAMIQUES GPT
 # ------------------------------------------------------------
 
-def evangile_hash(text: str) -> str:
-    """Hash SHA-256 unifié pour identifier un évangile/péricope dans les caches.
-
-    Normalisation : strip + collapse des espaces multiples en un seul.
-    Accents et casse conservés. Retourne le hexdigest complet (64 chars).
-    """
-    norm = re.sub(r"\s+", " ", text).strip()
-    return hashlib.sha256(norm.encode("utf-8")).hexdigest()
+def hash_pericope(text: str) -> str:
+    """Crée un hash court (hex) pour identifier la péricope dans le cache motifs."""
+    import hashlib
+    h = hashlib.sha1(text.encode("utf-8")).hexdigest()
+    return h[:16]
 
 
 def detect_dynamic_motifs_gpt(evangelium_text: str,
@@ -180,7 +176,7 @@ def detect_dynamic_motifs_gpt(evangelium_text: str,
     """
 
     # --- 0. Cache : vérifier si motifs déjà générés ---
-    pericope_hash = evangile_hash(evangelium_text)
+    pericope_hash = hash_pericope(evangelium_text)
     cached = load_motifs_cache(cache_dir, pericope_hash)
     if cached is not None:
         print(f"[INFO] Motifs dynamiques chargés depuis cache ({pericope_hash}).")
@@ -231,8 +227,7 @@ Passage d'Évangile :
                  "content": "Tu es un théologien catholique rigoureux, précis et expert en typologie et de la divine volonté de louisa picaretta."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0,
-            seed=42
+            temperature=0.1
         )
 
         raw = resp.choices[0].message.content.strip()
@@ -788,8 +783,7 @@ CONSIGNE : Sélectionne exactement {top_k_final} extraits parmi les candidats ci
                 {"role": "system", "content": _RERANK_SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0,  # pour un comportement stable
-            seed=42
+            temperature=0  # pour un comportement stable
         )
         raw = resp.choices[0].message.content.strip()
         data = parse_json_object(raw)
@@ -887,8 +881,7 @@ Extraits du Livre du Ciel :
                  "content": "Tu es un exégète catholique, expet en mystique, spécialiste de la divine volonté."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.3,
-            seed=42
+            temperature=0.3
         )
         return resp.choices[0].message.content.strip()
     except Exception as e:
@@ -1013,8 +1006,7 @@ CONSIGNE : Pour chaque Passage ci-dessus, produis une explication de 2 à 3 phra
                 {"role": "system", "content": _EXPLAIN_SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0,
-            seed=42
+            temperature=0
         )
         raw = resp.choices[0].message.content.strip()
         data = parse_json_object(raw)
