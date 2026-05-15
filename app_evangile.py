@@ -10,7 +10,6 @@ import os
 import re
 import json
 import base64
-import hashlib
 from datetime import datetime
 import streamlit as st
 
@@ -36,6 +35,7 @@ from ldc_proZ import (
     rerank_with_gpt,
     make_excerpt,
     explain_passage_matches,
+    evangile_hash,
 )
 
 
@@ -61,20 +61,8 @@ CACHE_EVANGILES_DIR = BASE_DIR / "cache_evangiles"
 # Cache des évangiles déjà analysés
 # ============================================================
 
-def _normalize_evangile_for_hash(text: str) -> str:
-    """Minuscule + espaces compactés. Accents conservés."""
-    text = text.lower()
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
-
-
-def _evangile_hash(text: str) -> str:
-    norm = _normalize_evangile_for_hash(text)
-    return hashlib.sha256(norm.encode("utf-8")).hexdigest()
-
-
 def _cache_path(text: str) -> Path:
-    return CACHE_EVANGILES_DIR / f"{_evangile_hash(text)}.json"
+    return CACHE_EVANGILES_DIR / f"{evangile_hash(text)}.json"
 
 
 def _load_cached_passages(text: str):
