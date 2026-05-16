@@ -18,6 +18,7 @@ import re
 import json
 import argparse
 import pickle
+import hashlib
 from dataclasses import dataclass
 from typing import List, Tuple, Dict, Optional
 
@@ -150,11 +151,15 @@ class Segment:
 #  MOTIFS DYNAMIQUES GPT
 # ------------------------------------------------------------
 
-def hash_pericope(text: str) -> str:
-    """Crée un hash court (hex) pour identifier la péricope dans le cache motifs."""
-    import hashlib
-    h = hashlib.sha1(text.encode("utf-8")).hexdigest()
-    return h[:16]
+def evangile_hash(text: str) -> str:
+    """Hash SHA-256 unifié pour identifier un évangile/péricope dans les caches.
+
+    Normalisation : lower() + collapse des espaces multiples en un seul.
+    Accents conservés. Retourne le hexdigest complet (64 chars).
+    """
+    norm = text.lower()
+    norm = re.sub(r"\s+", " ", norm).strip()
+    return hashlib.sha256(norm.encode("utf-8")).hexdigest()
 
 
 def detect_dynamic_motifs_gpt(evangelium_text: str,
@@ -176,7 +181,7 @@ def detect_dynamic_motifs_gpt(evangelium_text: str,
     """
 
     # --- 0. Cache : vérifier si motifs déjà générés ---
-    pericope_hash = hash_pericope(evangelium_text)
+    pericope_hash = evangile_hash(evangelium_text)
     cached = load_motifs_cache(cache_dir, pericope_hash)
     if cached is not None:
         print(f"[INFO] Motifs dynamiques chargés depuis cache ({pericope_hash}).")
