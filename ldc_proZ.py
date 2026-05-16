@@ -304,12 +304,20 @@ DATE_RE = re.compile(
 )
 TOME_RE = re.compile(r"Tome\s+(\d+)", re.IGNORECASE)
 
+# Plage d'années plausibles pour une dictée de Luisa Piccarreta.
+# Hors plage = front-matter (biographie : naissance 1865, copyright/cause 2011/2016, etc.)
+DICTEE_YEAR_MIN = 1899
+DICTEE_YEAR_MAX = 1947
+
 
 def parse_dictees(pages: List[str]) -> List[Dictee]:
     """
     Parcourt le texte page par page et découpe en dictées :
     - Une dictée commence dès qu’une date (JJ mois AAAA) est rencontrée.
     - Le tome courant est actualisé lorsqu'un "Tome X" est détecté.
+    - Les dates hors plage [DICTEE_YEAR_MIN, DICTEE_YEAR_MAX] sont ignorées
+      (front-matter biographique) : le texte continue d'être absorbé dans la
+      dictée en cours, sans coupure.
     """
     dictees: List[Dictee] = []
     cur_tome: Optional[int] = None
@@ -317,6 +325,8 @@ def parse_dictees(pages: List[str]) -> List[Dictee]:
     cur_page = 0
     buf: List[str] = []
     started = False
+    rejected_dates: List[tuple] = []  # (page, date_str, reason)
+    pages_with_date: set = set()
 
     for p_i, text in enumerate(pages):
         for line in text.splitlines():
@@ -333,6 +343,17 @@ def parse_dictees(pages: List[str]) -> List[Dictee]:
             # Détection date (souple : date présente quelque part dans la ligne)
             dm = DATE_RE.search(l)
             if dm:
+                year = int(dm.group(3))
+                if not (DICTEE_YEAR_MIN <= year <= DICTEE_YEAR_MAX):
+                    # Faux positif (biographie/copyright) : on log et on
+                    # continue à absorber la ligne dans la dictée en cours.
+                    rejected_dates.append(
+                        (p_i, dm.group(0), f"année {year} hors plage")
+                    )
+                    if started:
+                        buf.append(line)
+                    continue
+
                 # Clôturer dictée précédente
                 if started and buf:
                     dictees.append(
@@ -347,6 +368,7 @@ def parse_dictees(pages: List[str]) -> List[Dictee]:
 
                 cur_date = dm.group(0)  # ex: "12 mars 1930"
                 cur_page = p_i
+                pages_with_date.add(p_i)
                 started = True
                 continue
 
@@ -365,6 +387,22 @@ def parse_dictees(pages: List[str]) -> List[Dictee]:
         )
 
     print(f"[INFO] Dictées extraites : {len(dictees)}")
+    print(f"[INFO] Pages avec démarrage de dictée : "
+          f"{len(pages_with_date)}/{len(pages)}")
+    if rejected_dates:
+        print(f"[WARN] {len(rejected_dates)} date(s) rejetée(s) "
+              f"(hors plage {DICTEE_YEAR_MIN}-{DICTEE_YEAR_MAX}) :")
+        for pg, ds, reason in rejected_dates[:20]:
+            print(f"       page {pg} : {ds!r} -- {reason}")
+        if len(rejected_dates) > 20:
+            print(f"       ... et {len(rejected_dates) - 20} autre(s)")
+    # Gaps de pages > 10 sans nouveau démarrage = potentielle date manquée
+    sorted_pages = sorted(pages_with_date)
+    for k in range(1, len(sorted_pages)):
+        gap = sorted_pages[k] - sorted_pages[k - 1]
+        if gap > 10:
+            print(f"[WARN] gap de {gap} pages sans nouvelle dictée : "
+                  f"page {sorted_pages[k - 1]} -> page {sorted_pages[k]}")
     return dictees
 
 
