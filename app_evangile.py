@@ -221,9 +221,9 @@ h2 {
 .stTextArea textarea {
     border: 1px solid #e5e7eb !important;
     border-radius: 10px !important;
-    font-family: 'Inter', sans-serif !important;
+    font-family: Georgia, 'Times New Roman', serif !important;
     font-size: 1rem !important;
-    line-height: 1.6 !important;
+    line-height: 1.65 !important;
     padding: 1rem !important;
     background: #ffffff !important;
     color: #111827 !important;
@@ -243,7 +243,7 @@ input[type="password"], input[type="text"] {
 }
 
 .stButton > button {
-    background-color: #111827 !important;
+    background-color: #5a7490 !important;
     color: #ffffff !important;
     border: none !important;
     border-radius: 8px !important;
@@ -253,9 +253,9 @@ input[type="password"], input[type="text"] {
     transition: all 0.15s ease !important;
 }
 .stButton > button:hover {
-    background-color: #111827 !important;
+    background-color: #7a92a8 !important;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(17, 24, 39, 0.12) !important;
+    box-shadow: 0 4px 12px rgba(90, 116, 144, 0.18) !important;
 }
 
 .stDownloadButton > button {
@@ -317,7 +317,9 @@ hr {
 }
 .stTextInput label,
 [data-testid="stWidgetLabel"] {
-    color: #111827 !important;
+    color: #4a5460 !important;
+    font-family: 'Cormorant Garamond', Georgia, serif !important;
+    font-size: 1.05rem !important;
 }
 
 /* Forcer le fond clair sur TOUS les wrappers BaseWeb du text_input */
@@ -383,9 +385,54 @@ hr {
 }
 .stTextInput label,
 [data-testid="stWidgetLabel"] {
-    color: #111827 !important;
+    color: #4a5460 !important;
+    font-family: 'Cormorant Garamond', Georgia, serif !important;
+    font-size: 1.05rem !important;
 }
 
+/* === Design refinements v2 (branch design-refinements) === */
+
+/* Logo : 200px width (override de l'inline 140px de _build_logo_html) */
+.stApp img[alt="Logo"] {
+    width: 300px !important;
+    max-width: 300px !important;
+}
+/* Marge inférieure du wrapper logo réduite (rapprocher du sous-titre) */
+div[style*="margin: 0 0 1.4rem"] {
+    margin-bottom: 0.4rem !important;
+}
+
+/* Sous-titre 'À la lumière du Livre du Ciel' : Cormorant Garamond italic, taupe chaud */
+p[style*="color:#5b6b87"],
+p[style*="color:#5b6b87"] em {
+    color: #6b7a8c !important;
+    font-family: 'Cormorant Garamond', Georgia, serif !important;
+    font-style: italic !important;
+    font-size: 1.15rem !important;
+    font-weight: 400 !important;
+    letter-spacing: 0 !important;
+    margin-bottom: 1.5rem !important;
+}
+
+/* Hint 'Vous pouvez modifier...' + AELF error + 'Résultat depuis le cache' :
+   tous passent du gris au taupe chaud (même classe de message de service) */
+p[style*="color:#9ca3af"] {
+    color: #6b7a8c !important;
+}
+
+/* Toggle (st.toggle) : track warm brown quand activé, knob blanc */
+[data-testid="stCheckbox"] [role="switch"][aria-checked="true"],
+[data-baseweb="checkbox"] [role="switch"][aria-checked="true"],
+[data-baseweb="checkbox"] input:checked + div,
+[data-baseweb="checkbox"] input:checked ~ div {
+    background-color: #7a92a8 !important;
+    border-color: #7a92a8 !important;
+}
+[role="switch"] > div,
+[role="switch"] > div > div,
+[role="switch"] [data-baseweb="checkmark"] {
+    background-color: #ffffff !important;
+}
 </style>
 """
 
@@ -660,7 +707,7 @@ evangile_text = st.text_area(
 st.markdown(
     "<p style='color:#9ca3af; font-size:0.85rem; font-style:italic; "
     "margin-top:-0.6rem; margin-bottom:0.4rem;'>"
-    "Vous pouvez modifier ce texte ou le remplacer par un autre passage.</p>",
+    "Vous pouvez modifier ce texte ou le remplacer</p>",
     unsafe_allow_html=True,
 )
 
