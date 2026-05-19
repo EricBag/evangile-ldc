@@ -10,8 +10,10 @@ import os
 import re
 import json
 import base64
-from datetime import datetime
+from datetime import date, datetime
 import streamlit as st
+
+import aelf_client
 
 # ============================================================
 # 1) CLÉ OPENAI — AVANT TOUT IMPORT DE ldc_proZ
@@ -146,13 +148,13 @@ def _build_logo_html(width: int = 220, radius: int = 16) -> str:
            alt="Logo"
            style="width:{width}px; height:auto;
                   border-radius:{radius}px;
-                  box-shadow: 0 6px 22px rgba(17, 24, 39, 0.12);
+                  box-shadow: 0 2px 8px rgba(17, 24, 39, 0.10);
                   display:inline-block;" />
     </div>
     """
 
 
-LOGO_HTML = _build_logo_html(width=220, radius=16)
+LOGO_HTML = _build_logo_html(width=140, radius=12)
 
 
 # ============================================================
@@ -382,7 +384,9 @@ hr {
 .stTextInput label,
 [data-testid="stWidgetLabel"] {
     color: #111827 !important;
-}</style>
+}
+
+</style>
 """
 
 
@@ -500,12 +504,93 @@ def load_index(pdf_path: str, cache_dir: str):
     )
 
 
+# ============================================================
+# 5) Pré-remplissage AELF (évangile du jour)
+# ============================================================
+
+def _build_evangile_state(date_iso: str, include_premiere_lecture: bool) -> dict:
+    """Construit le texte pré-rempli et le contexte liturgique pour une date.
+
+    Returns:
+        dict avec clés 'context' (str), 'text' (str), 'error' (str | None).
+        En cas d'échec API : 'context' et 'text' vides, 'error' renseigné.
+    """
+    try:
+        messe = aelf_client.fetch_messe(date_iso)
+    except aelf_client.AelfError as exc:
+        return {"context": "", "text": "", "error": str(exc)}
+
+    context = aelf_client.extract_contexte_liturgique(messe)
+    parts: list[str] = []
+
+    try:
+        ref, titre, texte = aelf_client.extract_evangile(messe)
+        header = f"ÉVANGILE ({ref})"
+        if titre:
+            header += f"\n{titre}"
+        parts.append(f"{header}\n\n{texte}")
+    except aelf_client.AelfError:
+        pass
+
+    if include_premiere_lecture:
+        try:
+            ref, titre, texte = aelf_client.extract_premiere_lecture(messe)
+            header = f"─── 1ÈRE LECTURE ({ref}) ───"
+            if titre:
+                header += f"\n{titre}"
+            parts.append(f"{header}\n\n{texte}")
+        except aelf_client.AelfError:
+            pass
+
+    return {"context": context, "text": "\n\n".join(parts), "error": None}
+
+
+def _apply_evangile_state(*, force_replace_text: bool) -> None:
+    """Met à jour le session_state à partir d'un fetch AELF frais.
+
+    `force_replace_text=True`  → `evangile_text` est TOUJOURS remplacé (callback date).
+    `force_replace_text=False` → on respecte une édition manuelle (callback checkbox).
+    Dans les deux cas, `evangile_context`, `evangile_error` et `evangile_text_auto`
+    sont mis à jour.
+    """
+    state = _build_evangile_state(
+        st.session_state.evangile_date.isoformat(),
+        st.session_state.include_premiere_lecture,
+    )
+    st.session_state.evangile_context = state["context"]
+    st.session_state.evangile_error = state["error"]
+    new_auto = state["text"]
+    if force_replace_text:
+        st.session_state.evangile_text = new_auto
+    else:
+        current = st.session_state.get("evangile_text", "")
+        last_auto = st.session_state.get("evangile_text_auto", "")
+        if current == last_auto:
+            st.session_state.evangile_text = new_auto
+    st.session_state.evangile_text_auto = new_auto
+
+
+def _on_date_change() -> None:
+    """Callback date_input : refresh COMPLET (édition manuelle écrasée).
+
+    L'utilisateur change explicitement de jour → il veut voir le nouvel évangile.
+    """
+    _apply_evangile_state(force_replace_text=True)
+
+
+def _on_checkbox_change() -> None:
+    """Callback checkbox : refresh PRÉSERVANT une édition manuelle."""
+    _apply_evangile_state(force_replace_text=False)
+
+
 st.markdown(LOGO_HTML, unsafe_allow_html=True)
 st.markdown("<h1>Évangile du jour</h1>", unsafe_allow_html=True)
 st.markdown(
-    "<p style='text-align:center; color:#6b7280; font-size:1rem; "
-    "margin-top:-0.3rem; margin-bottom:2.5rem;'>"
-    "À la lumière du <em>Livre du Ciel</em> de Luisa Piccarreta"
+    "<p style='text-align:center; color:#5b6b87; font-size:1.05rem; "
+    "font-weight:300; letter-spacing:0.01em; "
+    "margin-top:0.8rem; margin-bottom:3rem;'>"
+    "À la lumière du <em style='font-style:italic; color:#172744;'>"
+    "Livre du Ciel</em> de Luisa Piccarreta"
     "</p>",
     unsafe_allow_html=True,
 )
@@ -523,16 +608,72 @@ except Exception as e:
     st.error(f"Erreur de chargement de l'index : {e}")
     st.stop()
 
+# Initialisation session_state au premier rendu
+if "evangile_date" not in st.session_state:
+    st.session_state.evangile_date = date.today()
+if "include_premiere_lecture" not in st.session_state:
+    st.session_state.include_premiere_lecture = False
+if "evangile_text" not in st.session_state:
+    _initial = _build_evangile_state(
+        st.session_state.evangile_date.isoformat(),
+        st.session_state.include_premiere_lecture,
+    )
+    st.session_state.evangile_text = _initial["text"]
+    st.session_state.evangile_text_auto = _initial["text"]
+    st.session_state.evangile_context = _initial["context"]
+    st.session_state.evangile_error = _initial["error"]
+
+# Sélecteur de date : compact et centré (largeur fixée via CSS à 280px)
+st.date_input(
+    "📅 Jour souhaité",
+    key="evangile_date",
+    format="DD/MM/YYYY",
+    on_change=_on_date_change,
+)
+
+# Contexte liturgique (ou message d'erreur API)
+if st.session_state.get("evangile_error"):
+    st.markdown(
+        "<p style='color:#9ca3af; font-size:0.85rem; font-style:italic; "
+        "margin-top:-0.4rem; margin-bottom:0.8rem;'>"
+        "Lectures AELF indisponibles pour cette date.</p>",
+        unsafe_allow_html=True,
+    )
+elif st.session_state.get("evangile_context"):
+    st.markdown(
+        f"<p style='color:#6b7280; font-size:0.9rem; font-style:italic; "
+        f"margin-top:-0.4rem; margin-bottom:0.8rem;'>"
+        f"{st.session_state.evangile_context}</p>",
+        unsafe_allow_html=True,
+    )
+
+# Zone de texte (pré-remplie via session_state)
 evangile_text = st.text_area(
     "Texte de l'évangile",
-    height=240,
-    placeholder="Collez ici le texte de l'évangile du jour…",
+    key="evangile_text",
+    height=320,
+    placeholder="Le texte de l'évangile du jour s'affichera ici…",
     label_visibility="collapsed",
 )
 
-_, c, _ = st.columns([1, 1, 1])
+# Hint sous la zone
+st.markdown(
+    "<p style='color:#9ca3af; font-size:0.85rem; font-style:italic; "
+    "margin-top:-0.6rem; margin-bottom:0.4rem;'>"
+    "Vous pouvez modifier ce texte ou le remplacer par un autre passage.</p>",
+    unsafe_allow_html=True,
+)
+
+# Option : inclure la 1ère lecture
+st.toggle(
+    "Inclure la 1ère lecture",
+    key="include_premiere_lecture",
+    on_change=_on_checkbox_change,
+)
+
+_, c, _ = st.columns([1, 2, 1])
 with c:
-    launch = st.button("Analyser", type="primary", use_container_width=True)
+    launch = st.button("✨ Recevoir l'éclairage", type="primary", use_container_width=True)
 
 if launch:
     if not evangile_text.strip():
