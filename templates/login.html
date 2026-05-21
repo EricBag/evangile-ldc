@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Accès protégé — Évangile du jour</title>
+    <link rel="stylesheet" href="/static/styles.css"/>
+</head>
+<body class="page-login">
+    <main class="login-container">
+        <img src="/static/luisa.jpg" alt="Luisa Piccarreta" class="login-photo"/>
+        <h1 class="login-title">Accès protégé</h1>
+        <p class="login-subtitle">Veuillez saisir le mot de passe pour accéder à l'application.</p>
+
+        <form method="POST" action="/login" class="login-form">
+            <input
+                type="password"
+                name="password"
+                placeholder="Mot de passe"
+                class="login-input"
+                autofocus
+                required
+            />
+            {% if error %}
+            <p class="login-error">{{ error }}</p>
+            {% endif %}
+            <button type="submit" class="login-button">Entrer</button>
+        </form>
+    </main>
+</body>
+</html>

@@ -21,10 +21,10 @@ import html
 import logging
 import re
 import time
+from functools import lru_cache
 from typing import Optional
 
 import requests
-import streamlit as st
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ class AelfError(RuntimeError):
 # 1) Récupération distante
 # ============================================================
 
-@st.cache_data(ttl=86400, show_spinner=False)
+@lru_cache(maxsize=128)
 def fetch_messe(date: str, zone: str = "romain") -> dict:
     """
     GET https://api.aelf.org/v1/messes/{date}/{zone}

@@ -1,20 +1,46 @@
-# Cache des évangiles analysés (par déploiement, non versionné)
-cache_evangiles/
-
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.egg-info/
+# Environnements virtuels
 .venv/
 venv/
 env/
+ENV/
 
-# Streamlit
-.streamlit/secrets.toml
+# Variables d'environnement (SECRETS)
+.env
+.env.local
+.env.*.local
 
-# OS / IDE
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+
+# Cache de l'application
+cache_evangiles/
+*.cache
+
+# OS
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+
+# Streamlit (legacy)
+.streamlit/secrets.toml
+
+# Logs
+*.log
+
+# Fichiers temporaires
+*.tmp
+*.bak
+*.backup

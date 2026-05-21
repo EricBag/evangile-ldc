@@ -232,7 +232,7 @@ Passage d'Évangile :
                  "content": "Tu es un théologien catholique rigoureux, précis et expert en typologie et de la divine volonté de louisa picaretta."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.1
+            temperature=0.2
         )
 
         raw = resp.choices[0].message.content.strip()
@@ -826,7 +826,7 @@ CONSIGNE : Sélectionne exactement {top_k_final} extraits parmi les candidats ci
                 {"role": "system", "content": _RERANK_SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0  # pour un comportement stable
+            temperature=0.2  # pour un comportement majoritairement stable avec légère respiration
         )
         raw = resp.choices[0].message.content.strip()
         data = parse_json_object(raw)
@@ -1049,7 +1049,7 @@ CONSIGNE : Pour chaque Passage ci-dessus, produis une explication de 2 à 3 phra
                 {"role": "system", "content": _EXPLAIN_SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0
+            temperature=0.4
         )
         raw = resp.choices[0].message.content.strip()
         data = parse_json_object(raw)
@@ -1099,7 +1099,7 @@ def build_or_load_index(pdf_path: str,
             segments = pickle.load(f)
         with open(bm25_path, "rb") as f:
             bm25 = pickle.load(f)
-        embs = np.load(embs_path)
+        embs = np.load(embs_path).astype(np.float32)
         return dictees, segments, bm25, embs
 
     # Sinon, on reconstruit tout
@@ -1116,7 +1116,7 @@ def build_or_load_index(pdf_path: str,
         pickle.dump(segments, f)
     with open(bm25_path, "wb") as f:
         pickle.dump(bm25, f)
-    np.save(embs_path, embs)
+    np.save(embs_path, embs.astype(np.float16))
 
     return dictees, segments, bm25, embs
 
