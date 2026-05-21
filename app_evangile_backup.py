@@ -1,12 +1,8 @@
 """
 app_evangile.py — Évangile du jour × Livre du Ciel
 ====================================================
-Version redesign visuel : palette ivoire clair, or pâle, typographie épurée.
+Version : logo agrandi, sans "Thèmes détectés", sans synthèse théologique.
 Sortie = 2 extraits du Livre du Ciel + leurs éclairages.
-
-NOTE : La logique fonctionnelle (AELF, cache, ldc_proZ, mot de passe, admin)
-est strictement préservée. Seuls le CSS et certains rendus HTML ont été
-retravaillés pour un visuel plus élégant et épuré.
 """
 
 from pathlib import Path
@@ -124,17 +120,16 @@ _LOGO_SVG_FALLBACK = """
 <div style="text-align:center; margin:0;">
   <svg width="60" height="60" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;">
     <path d="M6 10 C 6 9, 7 8, 8 8 L 19 10 L 19 32 L 8 30 C 7 30, 6 29, 6 28 Z"
-          fill="#f9fafb" stroke="#5a4530" stroke-width="1.2" stroke-linejoin="round"/>
+          fill="#f9fafb" stroke="#111827" stroke-width="1.2" stroke-linejoin="round"/>
     <path d="M34 10 C 34 9, 33 8, 32 8 L 21 10 L 21 32 L 32 30 C 33 30, 34 29, 34 28 Z"
-          fill="#f9fafb" stroke="#5a4530" stroke-width="1.2" stroke-linejoin="round"/>
-    <line x1="20" y1="10" x2="20" y2="32" stroke="#5a4530" stroke-width="1.2"/>
+          fill="#f9fafb" stroke="#111827" stroke-width="1.2" stroke-linejoin="round"/>
+    <line x1="20" y1="10" x2="20" y2="32" stroke="#111827" stroke-width="1.2"/>
   </svg>
 </div>
 """
 
 
-def _build_logo_html(width: int = 180, radius: int = 10) -> str:
-    """Logo épuré : sans cadre, sans ombre, juste l'image avec coins arrondis."""
+def _build_logo_html(width: int = 220, radius: int = 16) -> str:
     if not LOGO_PATH.exists():
         return _LOGO_SVG_FALLBACK
 
@@ -153,54 +148,45 @@ def _build_logo_html(width: int = 180, radius: int = 10) -> str:
            alt="Logo"
            style="width:{width}px; height:auto;
                   border-radius:{radius}px;
+                  box-shadow: 0 2px 8px rgba(17, 24, 39, 0.10);
                   display:inline-block;" />
     </div>
     """
 
 
-LOGO_HTML = _build_logo_html(width=240, radius=12)
+LOGO_HTML = _build_logo_html(width=140, radius=12)
 
 
 # ============================================================
-# 4) CSS personnalisé — PALETTE ÉPURÉE IVOIRE + OR PÂLE
-# ============================================================
-#
-# Palette :
-#   Fond page       : #fdfaf2  (ivoire clair, lumière du matin)
-#   Texte titre     : #5a4530  (brun chaud doux)
-#   Texte corps     : #4a3a26  (sépia profond)
-#   Texte secondaire: #b89f7a  (or pâle / taupe blond)
-#   Incipit         : #7a6244  (brun moyen, italique)
-#   Accent or       : #c9b074  (or liturgique pâle)
-#   Cartes          : #fefdf8  (blanc cassé, à peine plus clair que le fond)
+# 4) CSS personnalisé
 # ============================================================
 
 CUSTOM_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
 
-/* ===== Fond clair forcé (override mode sombre navigateur) ===== */
+/* Forcer le th\u00e8me clair (pour les navigateurs en mode sombre) */
 html, body, .stApp,
 [data-testid="stAppViewContainer"],
 [data-testid="stHeader"],
 [data-testid="stMain"],
 .main, section.main {
-    background-color: #fdfaf2 !important;
-    color: #3d2817 !important;
+    background-color: #faf9f4 !important;
+    color: #111827 !important;
 }
-.stApp * { color: inherit; }
-
-#MainMenu { visibility: hidden; }
-footer { visibility: hidden; }
-header[data-testid="stHeader"] { height: 0; visibility: hidden; }
+.stApp * {
+    color: inherit;
+}
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header[data-testid="stHeader"] {height: 0; visibility: hidden;}
 
 .block-container {
     padding-top: 2.5rem !important;
     padding-bottom: 4rem !important;
-    max-width: 640px !important;
+    max-width: 760px !important;
 }
 
-/* ===== Typographie globale ===== */
 html, body, [class*="st-"], button, input, textarea {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
@@ -211,135 +197,132 @@ span[data-testid="stIconMaterial"] {
     font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
 }
 
-/* ===== Titres en Cormorant Garamond ===== */
 h1, h2, h3, h4 {
     font-family: 'Cormorant Garamond', Georgia, serif !important;
     font-weight: 500 !important;
-    color: #3d2817 !important;
-    letter-spacing: 0.3px !important;
+    color: #111827 !important;
+    letter-spacing: -0.01em !important;
 }
 
 h1 {
-    font-size: 2.4rem !important;
+    font-size: 2.6rem !important;
     line-height: 1.15 !important;
-    margin-top: 0 !important;
-    margin-bottom: 0.2rem !important;
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.3rem !important;
     text-align: center !important;
 }
 
 h2 {
-    font-size: 1.6rem !important;
-    margin-top: 2.5rem !important;
-    margin-bottom: 1.2rem !important;
-    text-align: center !important;
-    color: #3d2817 !important;
+    font-size: 1.7rem !important;
+    margin-top: 2rem !important;
+    margin-bottom: 0.8rem !important;
 }
 
-/* ===== Zone de texte (évangile) — épuré ===== */
 .stTextArea textarea {
-    border: none !important;
-    border-radius: 0 !important;
-    font-family: 'Cormorant Garamond', Georgia, serif !important;
-    font-size: 1.1rem !important;
-    line-height: 1.85 !important;
-    padding: 1rem 0 !important;
-    background: transparent !important;
-    color: #2c2418 !important;
-    caret-color: #3d2817 !important;
-    resize: none !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 10px !important;
+    font-family: Georgia, 'Times New Roman', serif !important;
+    font-size: 1rem !important;
+    line-height: 1.65 !important;
+    padding: 1rem !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    caret-color: #111827 !important;
 }
 .stTextArea textarea::placeholder {
-    color: #a08862 !important;
-    font-style: italic !important;
+    color: #9ca3af !important;
 }
 .stTextArea textarea:focus {
-    border: none !important;
-    box-shadow: none !important;
-    outline: none !important;
-    background: rgba(255, 255, 255, 0.3) !important;
-}
-.stTextArea [data-baseweb="textarea"],
-.stTextArea [data-baseweb="base-input"] {
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-}
-.stTextArea [data-baseweb="textarea"]:focus-within,
-.stTextArea [data-baseweb="base-input"]:focus-within {
-    border: none !important;
-    box-shadow: none !important;
-    outline: none !important;
+    border-color: #111827 !important;
+    box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08) !important;
 }
 
-/* ===== Date input — épuré, ligne fine sous le champ ===== */
-[data-testid="stDateInput"] label {
-    font-family: 'Cormorant Garamond', Georgia, serif !important;
-    font-size: 0.95rem !important;
-    font-weight: 400 !important;
-    font-style: italic !important;
-    color: #5d4a2f !important;
-    letter-spacing: 0.3px !important;
-    text-transform: none !important;
-    text-align: center !important;
-    display: block !important;
-    width: 100% !important;
-    margin-bottom: 0.3rem !important;
-}
-
-[data-testid="stDateInput"] input {
-    background-color: transparent !important;
-    color: #3d2817 !important;
-    border: none !important;
-    border-bottom: 0.5px solid rgba(184, 159, 122, 0.5) !important;
-    border-radius: 0 !important;
-    font-family: 'Cormorant Garamond', Georgia, serif !important;
-    font-size: 1.1rem !important;
-    padding: 0.5rem 0.2rem !important;
-    text-align: center !important;
-}
-[data-testid="stDateInput"] input:focus {
-    border-bottom-color: #c9b074 !important;
-    box-shadow: none !important;
-    outline: none !important;
-}
-/* Retirer aussi les bordures du wrapper baseweb autour de l'input */
-[data-testid="stDateInput"] [data-baseweb="input"],
-[data-testid="stDateInput"] [data-baseweb="base-input"] {
-    background-color: transparent !important;
-    border: none !important;
-}
-
-/* Calendrier popup — couleurs harmonisées */
-[data-baseweb="calendar"] {
-    background-color: #fefdf8 !important;
-    border: 0.5px solid rgba(184, 159, 122, 0.35) !important;
-    border-radius: 10px !important;
-}
-[data-baseweb="calendar"] button[aria-selected="true"] {
-    background-color: #c9b074 !important;
-    color: #ffffff !important;
-}
-[data-baseweb="calendar"] button[aria-pressed="true"] {
-    background-color: #c9b074 !important;
-}
-
-/* ===== Inputs texte / mot de passe ===== */
 input[type="password"], input[type="text"] {
-    color: #5a4530 !important;
-    caret-color: #5a4530 !important;
+    color: #111827 !important;
+    caret-color: #111827 !important;
 }
 
+.stButton > button {
+    background-color: #5a7490 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 0.55rem 1.5rem !important;
+    font-weight: 500 !important;
+    font-size: 0.95rem !important;
+    transition: all 0.15s ease !important;
+}
+.stButton > button:hover {
+    background-color: #7a92a8 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(90, 116, 144, 0.18) !important;
+}
+
+.stDownloadButton > button {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+}
+.stDownloadButton > button:hover {
+    background-color: #f9fafb !important;
+    border-color: #9ca3af !important;
+}
+
+[data-testid="stVerticalBlockBorderWrapper"] {
+    background: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 14px !important;
+    padding: 1.5rem 1.75rem !important;
+    margin-bottom: 1rem !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+blockquote {
+    border-left: 3px solid #9ca3af !important;
+    padding: 0.6rem 0 0.6rem 1.25rem !important;
+    margin: 1rem 0 !important;
+    color: #111827 !important;
+    font-family: 'Inter', -apple-system, sans-serif !important;
+    font-size: 1.05rem !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    line-height: 1.75 !important;
+    background: #fafafa !important;
+    border-radius: 0 8px 8px 0 !important;
+    padding-right: 1rem !important;
+}
+
+hr {
+    border: none !important;
+    border-top: 1px solid #e5e7eb !important;
+    margin: 2rem 0 !important;
+}
+
+.stAlert {
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+/* Forçage mode clair sur tous les inputs et le formulaire de mot de passe */
 .stTextInput input,
 .stTextInput input[type="password"],
 [data-testid="stTextInput"] input,
-[data-testid="stTextInput"] [data-baseweb="input"] input,
-[data-testid="stTextInput"] [data-baseweb="base-input"] {
-    background-color: #fefdf8 !important;
-    color: #3d2817 !important;
-    border-color: rgba(184, 159, 122, 0.4) !important;
-    border-radius: 8px !important;
+[data-baseweb="input"] input,
+[data-baseweb="base-input"] {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border-color: #d1d5db !important;
+}
+.stTextInput label,
+[data-testid="stWidgetLabel"] {
+    color: #4a5460 !important;
+    font-family: 'Cormorant Garamond', Georgia, serif !important;
+    font-size: 1.05rem !important;
 }
 
+/* Forcer le fond clair sur TOUS les wrappers BaseWeb du text_input */
 [data-testid="stTextInput"],
 [data-testid="stTextInput"] > div,
 [data-testid="stTextInput"] [data-baseweb="input"],
@@ -348,101 +331,40 @@ input[type="password"], input[type="text"] {
 .stTextInput > div,
 .stTextInput [data-baseweb="input"],
 .stTextInput [data-baseweb="input"] > div {
-    background-color: #fefdf8 !important;
+    background-color: #ffffff !important;
 }
 
-/* Neutraliser l'autofill navigateur */
+/* Neutraliser l'autofill navigateur (fond jaune/bleu sur champ password mémorisé) */
 .stTextInput input:-webkit-autofill,
 .stTextInput input:-webkit-autofill:hover,
 .stTextInput input:-webkit-autofill:focus,
 [data-testid="stTextInput"] input:-webkit-autofill {
-    -webkit-box-shadow: 0 0 0 1000px #fefdf8 inset !important;
-    -webkit-text-fill-color: #5a4530 !important;
-    caret-color: #5a4530 !important;
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+    -webkit-text-fill-color: #111827 !important;
+    caret-color: #111827 !important;
 }
 
-.stTextInput label {
-    color: #b89f7a !important;
-    font-family: 'Cormorant Garamond', Georgia, serif !important;
-    font-size: 1rem !important;
-}
-
-/* ===== Boutons ===== */
-.stButton > button {
-    background-color: #c9b074 !important;
-    color: #ffffff !important;
-    border: none !important;
-    border-radius: 8px !important;
-    padding: 0.65rem 1.6rem !important;
-    font-family: 'Inter', sans-serif !important;
-    font-weight: 500 !important;
-    font-size: 0.95rem !important;
-    letter-spacing: 0.3px !important;
-    transition: all 0.2s ease !important;
-    box-shadow: 0 1px 3px rgba(184, 159, 122, 0.15) !important;
-}
-.stButton > button:hover {
-    background-color: #b89f60 !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(201, 176, 116, 0.25) !important;
-}
-
-.stDownloadButton > button {
-    background-color: #fefdf8 !important;
-    color: #5a4530 !important;
-    border: 0.5px solid rgba(184, 159, 122, 0.4) !important;
-    border-radius: 8px !important;
-    font-family: 'Inter', sans-serif !important;
-    font-weight: 500 !important;
-}
-.stDownloadButton > button:hover {
-    background-color: #faf6ec !important;
-    border-color: #c9b074 !important;
-}
-
-/* ===== Conteneurs avec bordure (extraits du Livre du Ciel) ===== */
-[data-testid="stVerticalBlockBorderWrapper"] {
-    background: #fefdf8 !important;
-    border: 0.5px solid rgba(184, 159, 122, 0.3) !important;
-    border-radius: 12px !important;
-    padding: 1.75rem 2rem !important;
-    margin-bottom: 1.25rem !important;
-    box-shadow: 0 2px 8px rgba(184, 159, 122, 0.06);
-}
-
-/* ===== Blockquote (extraits Luisa) ===== */
-blockquote {
-    border-left: 2px solid #c9b074 !important;
-    padding: 0.6rem 0 0.6rem 1.4rem !important;
-    margin: 1rem 0 !important;
-    color: #2c2418 !important;
-    font-family: 'Cormorant Garamond', Georgia, serif !important;
-    font-size: 1.08rem !important;
-    font-style: normal !important;
-    font-weight: 400 !important;
-    line-height: 1.75 !important;
-    background: transparent !important;
-    border-radius: 0 !important;
-}
-
-/* ===== Séparateurs ===== */
-hr {
-    border: none !important;
-    border-top: 0.5px solid rgba(184, 159, 122, 0.3) !important;
-    margin: 2.5rem 0 !important;
-}
-
-.stAlert {
-    border-radius: 10px !important;
-    border: 0.5px solid rgba(184, 159, 122, 0.3) !important;
-    background-color: #fefdf8 !important;
-}
-
-/* ===== Masquer instructions Streamlit et badges cloud ===== */
+/* Masquer "Press Ctrl+Enter to apply" sous les text_area / text_input */
 [data-testid="InputInstructions"],
 [data-testid="stTextAreaInputInstructions"] {
     display: none !important;
 }
+
+/* Masquer le bouton "Manage app" et badges Streamlit Cloud */
+[data-testid="manage-app-button"],
+[data-testid="manage-app-button-container"],
+.stAppDeployButton,
+.viewerBadge_container__1QSob,
+.viewerBadge_link__qRIco {
+    display: none !important;
+}
+/* Hide "Press Ctrl+Enter to apply" hint */
+[data-testid="InputInstructions"],
+[data-testid="stTextAreaInputInstructions"] {
+    display: none !important;
+}
+
+/* Hide "Manage app" button */
 [data-testid="manage-app-button"],
 [data-testid="manage-app-button-container"],
 .stAppDeployButton,
@@ -451,67 +373,65 @@ hr {
     display: none !important;
 }
 
-/* ===== Sous-titre 'À la lumière du Livre du Ciel' ===== */
+/* Force light mode on password input and all inputs */
+.stTextInput input,
+.stTextInput input[type="password"],
+[data-testid="stTextInput"] input,
+[data-baseweb="input"] input,
+[data-baseweb="base-input"] {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border-color: #d1d5db !important;
+}
+.stTextInput label,
+[data-testid="stWidgetLabel"] {
+    color: #4a5460 !important;
+    font-family: 'Cormorant Garamond', Georgia, serif !important;
+    font-size: 1.05rem !important;
+}
+
+/* === Design refinements v2 (branch design-refinements) === */
+
+/* Logo : 200px width (override de l'inline 140px de _build_logo_html) */
+.stApp img[alt="Logo"] {
+    width: 300px !important;
+    max-width: 300px !important;
+}
+/* Marge inférieure du wrapper logo réduite (rapprocher du sous-titre) */
+div[style*="margin: 0 0 1.4rem"] {
+    margin-bottom: 0.4rem !important;
+}
+
+/* Sous-titre 'À la lumière du Livre du Ciel' : Cormorant Garamond italic, taupe chaud */
 p[style*="color:#5b6b87"],
 p[style*="color:#5b6b87"] em {
-    color: #8b6f47 !important;
+    color: #6b7a8c !important;
     font-family: 'Cormorant Garamond', Georgia, serif !important;
     font-style: italic !important;
     font-size: 1.15rem !important;
     font-weight: 400 !important;
-    letter-spacing: 0.2px !important;
-    margin-top: 0 !important;
+    letter-spacing: 0 !important;
     margin-bottom: 1.5rem !important;
 }
 
-/* ===== Messages de service (hint, AELF error, cache) en taupe doux ===== */
-p[style*="color:#9ca3af"],
-p[style*="color:#6b7280"] {
-    color: #b89f7a !important;
+/* Hint 'Vous pouvez modifier...' + AELF error + 'Résultat depuis le cache' :
+   tous passent du gris au taupe chaud (même classe de message de service) */
+p[style*="color:#9ca3af"] {
+    color: #6b7a8c !important;
 }
 
-/* ===== Toggle (st.toggle) : or quand activé ===== */
+/* Toggle (st.toggle) : track warm brown quand activé, knob blanc */
 [data-testid="stCheckbox"] [role="switch"][aria-checked="true"],
 [data-baseweb="checkbox"] [role="switch"][aria-checked="true"],
 [data-baseweb="checkbox"] input:checked + div,
 [data-baseweb="checkbox"] input:checked ~ div {
-    background-color: #c9b074 !important;
-    border-color: #c9b074 !important;
+    background-color: #7a92a8 !important;
+    border-color: #7a92a8 !important;
 }
 [role="switch"] > div,
 [role="switch"] > div > div,
 [role="switch"] [data-baseweb="checkmark"] {
     background-color: #ffffff !important;
-}
-
-/* ===== Label du toggle ===== */
-[data-testid="stCheckbox"] label p {
-    font-family: 'Inter', sans-serif !important;
-    color: #5a4530 !important;
-    font-size: 0.95rem !important;
-}
-
-/* ===== Logo : pas de cadre, juste l'image arrondie ===== */
-.stApp img[alt="Logo"] {
-    width: 260px !important;
-    max-width: 260px !important;
-    border-radius: 12px !important;
-    box-shadow: none !important;
-}
-/* Marge sous le logo TRÈS resserrée pour rapprocher du titre */
-div[style*="margin: 0 0 1.4rem"] {
-    margin-bottom: 0.2rem !important;
-}
-
-/* ===== Conteneur du champ date : centré, largeur limitée ===== */
-[data-testid="stDateInput"] {
-    max-width: 280px !important;
-    margin: 0 auto 1.5rem auto !important;
-}
-
-/* Réduire l'espace entre les éléments Streamlit empilés en haut de page */
-[data-testid="stVerticalBlock"] {
-    gap: 0.3rem !important;
 }
 </style>
 """
@@ -544,9 +464,7 @@ def check_password() -> bool:
     st.markdown("<h1 style='text-align:center;'>Accès protégé</h1>",
                 unsafe_allow_html=True)
     st.markdown(
-        "<p style='text-align:center; color:#b89f7a; "
-        "font-family: Cormorant Garamond, Georgia, serif; font-style:italic; "
-        "font-size:1.05rem; margin-bottom:2.5rem;'>"
+        "<p style='text-align:center; color:#6b7280; margin-bottom:2rem;'>"
         "Veuillez saisir le mot de passe pour accéder à l'application.</p>",
         unsafe_allow_html=True,
     )
@@ -712,17 +630,13 @@ def _on_checkbox_change() -> None:
     _apply_evangile_state(force_replace_text=False)
 
 
-# ============================================================
-# 6) RENDU DE LA PAGE PRINCIPALE
-# ============================================================
-
 st.markdown(LOGO_HTML, unsafe_allow_html=True)
 st.markdown("<h1>Évangile du jour</h1>", unsafe_allow_html=True)
 st.markdown(
-    "<p style='text-align:center; color:#5b6b87; font-size:1.15rem; "
+    "<p style='text-align:center; color:#5b6b87; font-size:1.05rem; "
     "font-weight:300; letter-spacing:0.01em; "
-    "margin-top:0; margin-bottom:1.5rem;'>"
-    "À la lumière du <em style='font-style:italic;'>"
+    "margin-top:0.8rem; margin-bottom:3rem;'>"
+    "À la lumière du <em style='font-style:italic; color:#172744;'>"
     "Livre du Ciel</em> de Luisa Piccarreta"
     "</p>",
     unsafe_allow_html=True,
@@ -756,9 +670,9 @@ if "evangile_text" not in st.session_state:
     st.session_state.evangile_context = _initial["context"]
     st.session_state.evangile_error = _initial["error"]
 
-# Sélecteur de date (label sans emoji, plus discret)
+# Sélecteur de date : compact et centré (largeur fixée via CSS à 280px)
 st.date_input(
-    "Jour",
+    "📅 Jour souhaité",
     key="evangile_date",
     format="DD/MM/YYYY",
     on_change=_on_date_change,
@@ -767,18 +681,15 @@ st.date_input(
 # Contexte liturgique (ou message d'erreur API)
 if st.session_state.get("evangile_error"):
     st.markdown(
-        "<p style='color:#b89f7a; font-size:0.9rem; "
-        "font-family: Cormorant Garamond, Georgia, serif; font-style: italic; "
-        "text-align:center; margin-top:0.6rem; margin-bottom:1.5rem;'>"
+        "<p style='color:#9ca3af; font-size:0.85rem; font-style:italic; "
+        "margin-top:-0.4rem; margin-bottom:0.8rem;'>"
         "Lectures AELF indisponibles pour cette date.</p>",
         unsafe_allow_html=True,
     )
 elif st.session_state.get("evangile_context"):
     st.markdown(
-        f"<p style='color:#5d4a2f; font-size:1.05rem; "
-        f"font-family: Cormorant Garamond, Georgia, serif; font-style: italic; "
-        f"letter-spacing: 0.3px; text-align:center; "
-        f"margin-top:0.6rem; margin-bottom:1.5rem;'>"
+        f"<p style='color:#6b7280; font-size:0.9rem; font-style:italic; "
+        f"margin-top:-0.4rem; margin-bottom:0.8rem;'>"
         f"{st.session_state.evangile_context}</p>",
         unsafe_allow_html=True,
     )
@@ -787,16 +698,15 @@ elif st.session_state.get("evangile_context"):
 evangile_text = st.text_area(
     "Texte de l'évangile",
     key="evangile_text",
-    height=280,
+    height=320,
     placeholder="Le texte de l'évangile du jour s'affichera ici…",
     label_visibility="collapsed",
 )
 
-# Hint sous la zone — discret mais lisible
+# Hint sous la zone
 st.markdown(
-    "<p style='color:#a08862; font-size:0.85rem; font-style:italic; "
-    "font-family: Inter, sans-serif; "
-    "text-align:center; margin-top:0.4rem; margin-bottom:1.2rem;'>"
+    "<p style='color:#9ca3af; font-size:0.85rem; font-style:italic; "
+    "margin-top:-0.6rem; margin-bottom:0.4rem;'>"
     "Vous pouvez modifier ce texte ou le remplacer</p>",
     unsafe_allow_html=True,
 )
@@ -808,11 +718,9 @@ st.toggle(
     on_change=_on_checkbox_change,
 )
 
-# Bouton principal
-st.markdown("<div style='margin-top: 1.5rem;'></div>", unsafe_allow_html=True)
 _, c, _ = st.columns([1, 2, 1])
 with c:
-    launch = st.button("Recevoir l'éclairage", type="primary", use_container_width=True)
+    launch = st.button("✨ Recevoir l'éclairage", type="primary", use_container_width=True)
 
 if launch:
     if not evangile_text.strip():
@@ -840,10 +748,9 @@ if launch:
 
     if from_cache:
         st.markdown(
-            "<p style='color:#b89f7a; font-size:0.8rem; "
-            "text-align:center; margin-top:-0.6rem; margin-bottom:1.5rem; "
-            "font-style:italic; font-family: Inter, sans-serif;'>"
-            "résultat depuis le cache</p>",
+            "<p style='color:#9ca3af; font-size:0.78rem; "
+            "margin-top:-0.4rem; margin-bottom:1rem; font-style:italic;'>"
+            "Résultat depuis le cache</p>",
             unsafe_allow_html=True,
         )
 
@@ -853,31 +760,27 @@ if launch:
         for i, p in enumerate(passages, start=1):
             with st.container(border=True):
                 st.markdown(
-                    f"<p style='color:#8b6f47; font-size:0.78rem; "
-                    f"font-family: Inter, sans-serif; font-weight: 600; "
-                    f"text-transform:uppercase; letter-spacing:0.2em; "
-                    f"margin-bottom:1rem;'>"
-                    f"Extrait {i} &nbsp;·&nbsp; Tome {p['tome']} &nbsp;·&nbsp; {p['date']}</p>",
+                    f"<p style='color:#6b7280; font-size:0.8rem; "
+                    f"text-transform:uppercase; letter-spacing:0.08em; "
+                    f"margin-bottom:0.3rem;'>"
+                    f"Extrait {i} · Tome {p['tome']} · {p['date']}</p>",
                     unsafe_allow_html=True,
                 )
                 st.markdown(f"> {p['extrait']}")
                 if p.get("explication"):
                     st.markdown(
-                        f"<p style='color:#8b6f47; font-size:0.78rem; "
-                        f"font-family: Inter, sans-serif; font-weight: 600; "
-                        f"text-transform:uppercase; letter-spacing:0.2em; "
-                        f"margin-top:1.5rem; margin-bottom:0.6rem;'>Éclairage</p>",
+                        f"<p style='color:#6b7280; font-size:0.8rem; "
+                        f"text-transform:uppercase; letter-spacing:0.08em; "
+                        f"margin-top:1rem; margin-bottom:0.3rem;'>Éclairage</p>",
                         unsafe_allow_html=True,
                     )
                     st.markdown(
-                        f"<p style='color:#2c2418; line-height:1.75; "
-                        f"font-family: Cormorant Garamond, Georgia, serif; "
-                        f"font-size: 1.08rem; margin: 0;'>{p['explication']}</p>",
+                        f"<p style='color:#111827; line-height:1.7;'>{p['explication']}</p>",
                         unsafe_allow_html=True,
                     )
 
         export_txt = _build_export(evangile_text, passages)
-        st.markdown("<div style='margin-top:1.5rem;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-top:1rem;'></div>", unsafe_allow_html=True)
         _, cdl, _ = st.columns([1, 1, 1])
         with cdl:
             st.download_button(
@@ -907,8 +810,8 @@ if _ADMIN_PASSWORD:
             if CACHE_EVANGILES_DIR.exists():
                 nb_cached = sum(1 for _ in CACHE_EVANGILES_DIR.glob("*.json"))
             st.markdown(
-                f"<p style='color:#b89f7a; font-size:0.9rem; margin-bottom:0.8rem;'>"
-                f"Évangiles en cache : <strong style='color:#5a4530;'>{nb_cached}</strong></p>",
+                f"<p style='color:#6b7280; font-size:0.85rem; margin-bottom:0.6rem;'>"
+                f"Évangiles en cache : <strong>{nb_cached}</strong></p>",
                 unsafe_allow_html=True,
             )
             if st.button("Vider le cache des évangiles", key="clear_cache_btn"):
@@ -917,7 +820,7 @@ if _ADMIN_PASSWORD:
                 st.rerun()
         else:
             st.markdown(
-                "<p style='color:#b89f7a; font-size:0.9rem;'>"
+                "<p style='color:#6b7280; font-size:0.85rem;'>"
                 "Accès restreint à l'administrateur.</p>",
                 unsafe_allow_html=True,
             )

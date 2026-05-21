@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Évangile du jour — Livre du Ciel</title>
+    <link rel="stylesheet" href="/static/styles.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css"/>
+</head>
+<body class="page-main">
+    <main class="container">
+
+        <img src="/static/luisa.jpg" alt="Luisa Piccarreta" class="photo-luisa"/>
+        <h1 class="titre">Évangile du jour</h1>
+        <p class="sous-titre">à la lumière du <em>Livre du Ciel</em> de Luisa Piccarreta</p>
+
+        <div id="ecran-choix" class="ecran-choix">
+            <div class="bloc-choix">
+                <button type="button" class="carte-choix carte-choix-evangile" id="choix-evangile">
+                    <i class="ti ti-calendar carte-choix-icone carte-choix-icone-bleu" aria-hidden="true"></i>
+                    <div class="carte-choix-texte">
+                        <div class="carte-choix-titre">Évangile du jour</div>
+                        <div class="carte-choix-soustitre">Récupérer automatiquement la lecture liturgique</div>
+                    </div>
+                </button>
+                <button type="button" class="carte-choix carte-choix-texte-libre" id="choix-texte">
+                    <i class="ti ti-edit carte-choix-icone carte-choix-icone-or" aria-hidden="true"></i>
+                    <div class="carte-choix-texte">
+                        <div class="carte-choix-titre">Saisir un texte</div>
+                        <div class="carte-choix-soustitre">Coller ou écrire un passage de votre choix</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <div id="ecran-evangile" class="ecran-evangile" style="display:none;">
+
+            <div class="bloc-date-ligne">
+                <span id="date-affichee" class="date-affichee">{{ today_human or today }}</span>
+                <div class="conteneur-icone-date">
+                    <i class="ti ti-calendar-event icone-calendrier" aria-hidden="true"></i>
+                    <input type="date" id="date-input" value="{{ today }}" class="input-date-overlay" aria-label="Choisir une date"/>
+                </div>
+            </div>
+            <p id="contexte-liturgique" class="contexte-liturgique"
+               {% if not context %}style="display:none;"{% endif %}>{{ context or "" }}</p>
+            <p id="erreur-aelf" class="erreur-aelf" style="display:none;">Lectures AELF indisponibles pour cette date.</p>
+
+            <div class="carte-evangile" id="carte-evangile">
+
+                <div class="entete-evangile" id="entete-evangile">
+                    <div class="barre-doree"></div>
+                    <span class="label-evangile" id="label-evangile-titre">Évangile</span>
+                    <span class="ref-biblique" id="ref-biblique"></span>
+                </div>
+
+                <p class="incipit" id="incipit"></p>
+
+                <div id="evangile-rendu" class="evangile-rendu"></div>
+
+                <textarea id="evangile-textarea" class="evangile-textarea-edition"
+                          placeholder="Collez ou écrivez le texte ici…"
+                          style="display:none;"></textarea>
+
+            </div>
+
+            <div class="bloc-toggle">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-1ere-lecture"/>
+                    <span class="toggle-slider"></span>
+                </label>
+                <span class="toggle-label">Inclure la 1<sup>ère</sup> lecture</span>
+            </div>
+
+            <div class="bloc-bouton">
+                <button type="button" id="bouton-eclairage" class="bouton-principal">
+                    Recevoir l'éclairage
+                </button>
+            </div>
+
+            <div id="spinner" class="spinner" style="display:none;">
+                <div class="spinner-cercle"></div>
+                <p class="spinner-texte">Recherche dans le Livre du Ciel…</p>
+            </div>
+
+            <div id="resultats" class="resultats" style="display:none;">
+                <hr class="separateur"/>
+                <h2 class="titre-resultats">Extraits du Livre du Ciel</h2>
+                <p id="cache-indicator" class="cache-indicator" style="display:none;">résultat depuis le cache</p>
+                <div id="liste-extraits"></div>
+                <div class="bloc-telecharger">
+                    <button type="button" id="bouton-telecharger" class="bouton-secondaire">
+                        Télécharger
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="admin-section">
+            <button type="button" id="bouton-toggle-admin" class="lien-admin">
+                Administration
+            </button>
+            <div id="panneau-admin" class="panneau-admin" style="display:none;">
+                <p class="admin-info">
+                    Évangiles en cache : <span id="admin-cache-count" class="admin-count">…</span>
+                </p>
+                <input
+                    type="password"
+                    id="admin-password"
+                    class="admin-input"
+                    placeholder="Mot de passe administrateur"
+                />
+                <button type="button" id="bouton-vider-cache" class="bouton-admin-action">
+                    Vider le cache des évangiles
+                </button>
+                <p id="admin-message" class="admin-message"></p>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const ecranChoix = document.getElementById('ecran-choix');
+        const ecranEvangile = document.getElementById('ecran-evangile');
+        const choixEvangile = document.getElementById('choix-evangile');
+        const choixTexte = document.getElementById('choix-texte');
+
+        const dateAffichee = document.getElementById('date-affichee');
+        const dateInput = document.getElementById('date-input');
+
+        const contexteEl = document.getElementById('contexte-liturgique');
+        const erreurEl = document.getElementById('erreur-aelf');
+
+        const carteEvangile = document.getElementById('carte-evangile');
+        const enteteEvangile = document.getElementById('entete-evangile');
+        const labelEvangileTitre = document.getElementById('label-evangile-titre');
+        const refBiblique = document.getElementById('ref-biblique');
+        const incipitEl = document.getElementById('incipit');
+        const evangileRendu = document.getElementById('evangile-rendu');
+        const evangileTextarea = document.getElementById('evangile-textarea');
+
+        const toggleLecture = document.getElementById('toggle-1ere-lecture');
+        const boutonEclairage = document.getElementById('bouton-eclairage');
+        const spinner = document.getElementById('spinner');
+        const resultats = document.getElementById('resultats');
+        const listeExtraits = document.getElementById('liste-extraits');
+        const cacheIndicator = document.getElementById('cache-indicator');
+        const boutonTelecharger = document.getElementById('bouton-telecharger');
+
+        let evangileTexteBrut = '';
+        let texteAuto = '';
+        let derniersResultats = null;
+
+        function basculerVersEvangile() {
+            ecranChoix.style.display = 'none';
+            ecranEvangile.style.display = '';
+        }
+
+        choixEvangile.addEventListener('click', async () => {
+            labelEvangileTitre.textContent = 'Évangile';
+            document.querySelector('.bloc-toggle').style.display = '';
+            basculerVersEvangile();
+            await rafraichirEvangile(true);
+        });
+
+        choixTexte.addEventListener('click', () => {
+            basculerVersEvangile();
+            contexteEl.style.display = 'none';
+            incipitEl.style.display = 'none';
+            evangileTexteBrut = '';
+            texteAuto = '';
+            evangileTextarea.value = '';
+            evangileRendu.style.display = 'none';
+            evangileTextarea.style.display = '';
+            document.querySelector('.bloc-toggle').style.display = 'none';
+            labelEvangileTitre.textContent = 'Texte';
+            enteteEvangile.style.display = '';
+            evangileTextarea.focus();
+        });
+
+        async function rafraichirEvangile(forceReplace) {
+            const formData = new FormData();
+            formData.append('date_iso', dateInput.value);
+            formData.append('include_premiere_lecture', toggleLecture.checked);
+
+            try {
+                const response = await fetch('/api/evangile', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await response.json();
+
+                if (data.context) {
+                    contexteEl.textContent = data.context;
+                    contexteEl.style.display = '';
+                } else {
+                    contexteEl.style.display = 'none';
+                }
+                erreurEl.style.display = data.error ? '' : 'none';
+
+                if (forceReplace || evangileTexteBrut === texteAuto) {
+                    evangileTexteBrut = data.text;
+                }
+                texteAuto = data.text;
+                evangileTextarea.value = evangileTexteBrut;
+                rafraichirRendu();
+            } catch (e) {
+                console.error('Erreur fetch évangile:', e);
+            }
+        }
+
+        function parserEvangile(texte) {
+            refBiblique.textContent = '';
+            incipitEl.textContent = '';
+            incipitEl.style.display = 'none';
+            enteteEvangile.style.display = '';
+
+            if (!texte || !texte.trim()) {
+                return '<p class="aucun-extrait">Aucun texte pour cette date.</p>';
+            }
+
+            const lignes = texte.split('\n');
+            let html = '';
+            let i = 0;
+            let premierBloc = true;
+
+            while (i < lignes.length) {
+                const l = lignes[i].trim();
+                if (!l) { i++; continue; }
+
+                const matchEvangile = l.match(/^(ÉVANGILE|EVANGILE)\s*\((.+?)\)/i);
+                if (matchEvangile) {
+                    if (premierBloc) {
+                        refBiblique.textContent = matchEvangile[2].trim();
+                        if (i + 1 < lignes.length && lignes[i+1].trim()) {
+                            incipitEl.textContent = lignes[i+1].trim();
+                            incipitEl.style.display = '';
+                            i += 2;
+                        } else {
+                            i += 1;
+                        }
+                        premierBloc = false;
+                    } else {
+                        html += `<h3 class="sous-titre-lecture">${escapeHtml(l)}</h3>`;
+                        i++;
+                    }
+                    continue;
+                }
+
+                if (l.match(/1[ÈE]RE\s+LECTURE/i)) {
+                    const refMatch = l.match(/\((.+?)\)/);
+                    const ref = refMatch ? refMatch[1] : '';
+                    html += `<div class="separateur-lecture"></div>`;
+                    html += `<h3 class="sous-titre-lecture">1<sup>ère</sup> lecture${ref ? ' <span class="ref-sub">(' + escapeHtml(ref) + ')</span>' : ''}</h3>`;
+                    if (i + 1 < lignes.length && lignes[i+1].trim()) {
+                        html += `<p class="incipit-sub">${escapeHtml(lignes[i+1].trim())}</p>`;
+                        i += 2;
+                    } else {
+                        i += 1;
+                    }
+                    continue;
+                }
+
+                html += `<p>${escapeHtml(l)}</p>`;
+                i++;
+            }
+            return html;
+        }
+
+        function rafraichirRendu() {
+            evangileRendu.innerHTML = parserEvangile(evangileTexteBrut);
+            evangileRendu.style.display = '';
+            evangileTextarea.style.display = 'none';
+        }
+
+        evangileRendu.addEventListener('click', () => {
+            evangileTextarea.value = evangileTexteBrut;
+            evangileRendu.style.display = 'none';
+            evangileTextarea.style.display = '';
+            evangileTextarea.focus();
+        });
+
+        evangileTextarea.addEventListener('blur', () => {
+            if (evangileTextarea.value.trim() !== evangileTexteBrut.trim()) {
+                evangileTexteBrut = evangileTextarea.value;
+            }
+            if (evangileTextarea.value.trim()) {
+                rafraichirRendu();
+            }
+        });
+
+        dateInput.addEventListener('change', async () => {
+            const d = new Date(dateInput.value);
+            const opts = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+            dateAffichee.textContent = d.toLocaleDateString('fr-FR', opts);
+            await rafraichirEvangile(true);
+        });
+
+        toggleLecture.addEventListener('change', () => rafraichirEvangile(false));
+
+        boutonEclairage.addEventListener('click', async () => {
+            const texte = (evangileTextarea.style.display === '' ? evangileTextarea.value : evangileTexteBrut).trim();
+            if (!texte) {
+                alert("Veuillez d'abord saisir ou charger un texte d'évangile.");
+                return;
+            }
+            evangileTexteBrut = texte;
+            if (evangileTextarea.style.display === '') {
+                rafraichirRendu();
+            }
+            resultats.style.display = 'none';
+            spinner.style.display = 'flex';
+            boutonEclairage.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('evangile_text', texte);
+                const response = await fetch('/api/eclairage', {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Erreur serveur');
+                }
+                const data = await response.json();
+                afficherResultats(data.passages, data.from_cache);
+                derniersResultats = data.passages;
+            } catch (e) {
+                alert('Erreur : ' + e.message);
+            } finally {
+                spinner.style.display = 'none';
+                boutonEclairage.disabled = false;
+            }
+        });
+
+        function afficherResultats(passages, fromCache) {
+            cacheIndicator.style.display = fromCache ? '' : 'none';
+            listeExtraits.innerHTML = '';
+            if (!passages || passages.length === 0) {
+                listeExtraits.innerHTML = '<p class="aucun-extrait">Aucun extrait pertinent trouvé pour ce texte.</p>';
+                resultats.style.display = '';
+                return;
+            }
+            passages.forEach((p, i) => {
+                const carte = document.createElement('article');
+                carte.className = 'carte-extrait';
+                let html = `<p class="meta-extrait">Extrait ${i + 1} &nbsp;·&nbsp; Tome ${p.tome} &nbsp;·&nbsp; ${p.date}</p>`;
+                html += `<blockquote class="texte-extrait">${escapeHtml(p.extrait)}</blockquote>`;
+                if (p.explication) {
+                    html += `<p class="label-eclairage">Éclairage</p>`;
+                    html += `<p class="texte-eclairage">${escapeHtml(p.explication)}</p>`;
+                }
+                carte.innerHTML = html;
+                listeExtraits.appendChild(carte);
+            });
+            resultats.style.display = '';
+            resultats.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        boutonTelecharger.addEventListener('click', () => {
+            if (!derniersResultats) return;
+            let contenu = "ÉVANGILE\n" + "=".repeat(60) + "\n";
+            contenu += evangileTexteBrut.trim() + "\n\n";
+            contenu += "EXTRAITS DU LIVRE DU CIEL\n" + "=".repeat(60) + "\n";
+            derniersResultats.forEach((p, i) => {
+                contenu += `\nExtrait ${i + 1} — Tome ${p.tome} — ${p.date}\n`;
+                contenu += "-".repeat(60) + "\n" + p.extrait + "\n";
+                if (p.explication) contenu += "\nÉclairage :\n" + p.explication + "\n";
+            });
+            const blob = new Blob([contenu], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'evangile_ldc.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // Panneau administration
+        const boutonToggleAdmin = document.getElementById('bouton-toggle-admin');
+        const panneauAdmin = document.getElementById('panneau-admin');
+        const adminCacheCount = document.getElementById('admin-cache-count');
+        const adminPassword = document.getElementById('admin-password');
+        const boutonViderCache = document.getElementById('bouton-vider-cache');
+        const adminMessage = document.getElementById('admin-message');
+
+        async function chargerCacheCount() {
+            try {
+                const r = await fetch('/api/admin/cache-count');
+                if (r.ok) {
+                    const d = await r.json();
+                    adminCacheCount.textContent = d.count;
+                }
+            } catch (e) { adminCacheCount.textContent = '?'; }
+        }
+
+        boutonToggleAdmin.addEventListener('click', async () => {
+            const visible = panneauAdmin.style.display !== 'none';
+            if (visible) {
+                panneauAdmin.style.display = 'none';
+            } else {
+                panneauAdmin.style.display = '';
+                await chargerCacheCount();
+            }
+        });
+
+        boutonViderCache.addEventListener('click', async () => {
+            const pwd = adminPassword.value;
+            if (!pwd) {
+                adminMessage.textContent = 'Veuillez saisir le mot de passe.';
+                adminMessage.className = 'admin-message admin-message-erreur';
+                return;
+            }
+            adminMessage.textContent = 'Suppression en cours…';
+            adminMessage.className = 'admin-message';
+
+            try {
+                const formData = new FormData();
+                formData.append('admin_password', pwd);
+                const r = await fetch('/api/admin/clear-cache', {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (!r.ok) {
+                    const err = await r.json();
+                    throw new Error(err.detail || 'Erreur');
+                }
+                const d = await r.json();
+                adminMessage.textContent = `${d.deleted} évangile(s) supprimé(s).`;
+                adminMessage.className = 'admin-message admin-message-succes';
+                adminPassword.value = '';
+                await chargerCacheCount();
+            } catch (e) {
+                adminMessage.textContent = 'Erreur : ' + e.message;
+                adminMessage.className = 'admin-message admin-message-erreur';
+            }
+        });
+    </script>
+</body>
+</html>

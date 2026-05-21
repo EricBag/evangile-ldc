@@ -1,0 +1,1025 @@
+/* ============================================================
+   ÉVANGILE DU JOUR × LIVRE DU CIEL
+   Feuille de style unique — palette ivoire + or pâle
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500&display=swap');
+
+/* ============================================================
+   Reset léger + base
+   ============================================================ */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: #fdfaf2;
+    color: #3d2817;
+    min-height: 100vh;
+}
+
+/* ============================================================
+   PAGE LOGIN
+   ============================================================ */
+
+.page-login {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 460px;
+    padding: 2rem;
+    text-align: center;
+}
+
+.login-photo {
+    width: 240px;
+    height: auto;
+    border-radius: 12px;
+    margin: 0 auto 0.4rem;
+    display: block;
+}
+
+.login-title {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 2.4rem;
+    font-weight: 500;
+    color: #3d2817;
+    margin: 0 0 0.5rem;
+    letter-spacing: 0.3px;
+    line-height: 1.15;
+}
+
+.login-subtitle {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.1rem;
+    font-style: italic;
+    color: #8b6f47;
+    margin: 0 0 2rem;
+    font-weight: 400;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 340px;
+    margin: 0 auto;
+}
+
+.login-input {
+    background: #fefdf8;
+    border: 0.5px solid rgba(184, 159, 122, 0.45);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.05rem;
+    color: #3d2817;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-input:focus {
+    border-color: #c9b074;
+    box-shadow: 0 0 0 3px rgba(201, 176, 116, 0.15);
+}
+
+.login-input::placeholder {
+    color: #b89f7a;
+    font-style: italic;
+}
+
+.login-button {
+    background-color: transparent;
+    color: #5a7a99;
+    border: 1px solid #5a7a99;
+    border-radius: 24px;
+    padding: 0.65rem 2.2rem;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.05rem;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.login-button:hover {
+    background-color: #5a7a99;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(90, 122, 153, 0.2);
+}
+
+.login-error {
+    color: #a04020;
+    font-size: 0.9rem;
+    font-style: italic;
+    margin: 0;
+}
+
+/* ============================================================
+   PAGE PRINCIPALE
+   ============================================================ */
+
+.container {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+    text-align: center;
+}
+
+/* Photo Luisa */
+.photo-luisa {
+    width: 240px;
+    height: auto;
+    border-radius: 12px;
+    display: block;
+    margin: 0 auto 0.4rem;
+}
+
+/* Titre */
+.titre {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 2.4rem;
+    font-weight: 500;
+    color: #3d2817;
+    margin: 0 0 0.3rem;
+    letter-spacing: 0.3px;
+    line-height: 1.15;
+}
+
+/* Sous-titre */
+.sous-titre {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.15rem;
+    font-style: italic;
+    color: #8b6f47;
+    margin: 0 0 2rem;
+    font-weight: 400;
+}
+
+.sous-titre em {
+    font-weight: 500;
+    font-style: italic;
+}
+
+/* Bloc date + contexte liturgique : groupés visuellement */
+.bloc-date-contexte {
+    max-width: 320px;
+    margin: 0 auto 2rem;
+    text-align: center;
+}
+
+.label-date {
+    display: block;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1rem;
+    font-style: italic;
+    font-weight: 400;
+    color: #5d4a2f;
+    margin-bottom: 0.4rem;
+    letter-spacing: 0.3px;
+}
+
+.input-date {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 0.5px solid rgba(184, 159, 122, 0.5);
+    padding: 0.5rem 0;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.1rem;
+    color: #3d2817;
+    text-align: center;
+    outline: none;
+    transition: border-bottom-color 0.2s ease;
+}
+
+.input-date:focus {
+    border-bottom-color: #c9b074;
+}
+
+.input-date::-webkit-calendar-picker-indicator {
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+.input-date::-webkit-calendar-picker-indicator:hover {
+    opacity: 0.9;
+}
+
+.contexte-liturgique {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 0.95rem;
+    font-style: italic;
+    color: #8b6f47;
+    margin: 0 0 1.8rem;
+    text-align: center;
+    letter-spacing: 0.3px;
+}
+
+.erreur-aelf {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 0.95rem;
+    font-style: italic;
+    color: #a04020;
+    margin: 0 0 1.5rem;
+}
+
+/* Zone de texte de l'évangile */
+.evangile-textarea {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0.5rem 0;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.1rem;
+    line-height: 1.85;
+    color: #2c2418;
+    text-align: left;
+    resize: vertical;
+    min-height: 280px;
+    transition: background-color 0.2s ease;
+}
+
+.evangile-textarea:focus {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.evangile-textarea::placeholder {
+    color: #a08862;
+    font-style: italic;
+}
+
+/* Affichage joli de l'évangile (mode lecture) */
+.evangile-bloc-lecture {
+    text-align: left;
+    margin-bottom: 1.5rem;
+}
+
+.evangile-rendu {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.1rem;
+    line-height: 1.85;
+    color: #2c2418;
+    margin-bottom: 1rem;
+}
+
+.evangile-rendu h3 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #3d2817;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin: 1.5rem 0 0.3rem;
+    border-bottom: 0.5px solid rgba(184, 159, 122, 0.3);
+    padding-bottom: 0.4rem;
+}
+
+.evangile-rendu h3:first-child {
+    margin-top: 0;
+}
+
+.evangile-rendu h4 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    font-style: italic;
+    color: #5d4a2f;
+    margin: 0.4rem 0 1rem;
+}
+
+.evangile-rendu p {
+    margin: 0 0 0.4rem;
+}
+
+.bouton-modifier {
+    background: none;
+    border: none;
+    color: #8b6f47;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-style: italic;
+    cursor: pointer;
+    padding: 0.2rem 0;
+    text-align: center;
+    display: block;
+    margin: 0 auto;
+    transition: color 0.2s ease;
+}
+
+.bouton-modifier:hover {
+    color: #5d4a2f;
+}
+
+.bouton-modifier-icone {
+    margin-right: 0.3rem;
+    font-style: normal;
+}
+
+/* Mode édition */
+.evangile-bloc-edition {
+    margin-bottom: 1.5rem;
+}
+
+.bloc-actions-edition {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+/* Hint */
+.hint {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-style: italic;
+    color: #a08862;
+    text-align: center;
+    margin: 0.4rem 0 1.5rem;
+}
+
+/* Bloc toggle */
+.bloc-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    margin: 0 0 2rem;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #e8d8bc;
+    border-radius: 11px;
+    transition: background-color 0.3s;
+}
+
+.toggle-slider::before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: #c9b074;
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(18px);
+}
+
+.toggle-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    color: #5a4530;
+}
+
+/* Bouton principal */
+.bloc-bouton {
+    margin: 0 0 1.5rem;
+}
+
+.bouton-principal {
+    background-color: transparent;
+    color: #5a7a99;
+    border: 1px solid #5a7a99;
+    border-radius: 24px;
+    padding: 0.65rem 2.2rem;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.05rem;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    min-width: 220px;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.bouton-principal:hover:not(:disabled) {
+    background-color: #5a7a99;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(90, 122, 153, 0.2);
+}
+
+.bouton-principal:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Spinner */
+.spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.spinner-cercle {
+    width: 32px;
+    height: 32px;
+    border: 2.5px solid rgba(184, 159, 122, 0.25);
+    border-top-color: #c9b074;
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.spinner-texte {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1rem;
+    font-style: italic;
+    color: #8b6f47;
+    margin: 0;
+}
+
+/* Séparateur entre formulaire et résultats */
+.separateur {
+    border: none;
+    border-top: 0.5px solid rgba(184, 159, 122, 0.3);
+    margin: 2.5rem 0 1.5rem;
+}
+
+/* Résultats */
+.resultats {
+    text-align: left;
+}
+
+.titre-resultats {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.6rem;
+    font-weight: 500;
+    color: #3d2817;
+    text-align: center;
+    margin: 0 0 0.6rem;
+    letter-spacing: 0.3px;
+}
+
+.cache-indicator {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-style: italic;
+    color: #a08862;
+    text-align: center;
+    margin: 0 0 1.5rem;
+}
+
+/* Carte extrait */
+.carte-extrait {
+    background: #fefdf8;
+    border: 0.5px solid rgba(184, 159, 122, 0.3);
+    border-radius: 12px;
+    padding: 1.75rem 2rem;
+    margin: 0 0 1.25rem;
+    box-shadow: 0 2px 8px rgba(184, 159, 122, 0.06);
+}
+
+.meta-extrait {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #8b6f47;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin: 0 0 1rem;
+}
+
+.texte-extrait {
+    border-left: 2px solid #c9b074;
+    padding: 0.4rem 0 0.4rem 1.4rem;
+    margin: 0 0 1rem;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.08rem;
+    line-height: 1.75;
+    color: #2c2418;
+    white-space: pre-wrap;
+    text-align: justify;
+    hyphens: auto;
+}
+
+.label-eclairage {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #8b6f47;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin: 1.5rem 0 0.6rem;
+}
+
+.texte-eclairage {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.08rem;
+    line-height: 1.75;
+    color: #2c2418;
+    margin: 0;
+    text-align: justify;
+    hyphens: auto;
+}
+
+.aucun-extrait {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1rem;
+    font-style: italic;
+    color: #8b6f47;
+    text-align: center;
+    margin: 2rem 0;
+}
+
+/* Bouton télécharger */
+.bloc-telecharger {
+    text-align: center;
+    margin: 1.5rem 0 0;
+}
+
+.bouton-secondaire {
+    background: white;
+    color: #5a4530;
+    border: 0.5px solid rgba(184, 159, 122, 0.5);
+    border-radius: 8px;
+    padding: 0.6rem 1.5rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.bouton-secondaire:hover {
+    background: #fefdf8;
+    border-color: #c9b074;
+}
+
+.erreur-globale {
+    color: #a04020;
+    font-size: 1rem;
+    text-align: center;
+    margin: 1rem 0;
+}
+
+/* ============================================================
+   Écran de choix initial
+   ============================================================ */
+
+.ecran-choix {
+    max-width: 460px;
+    margin: 0 auto;
+}
+
+.bloc-choix {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.carte-choix {
+    background: white;
+    border: 0.5px solid rgba(184, 159, 122, 0.35);
+    border-radius: 10px;
+    padding: 1.1rem 1.25rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    color: #3d2817;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    transition: border-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.carte-choix-evangile {
+    border-color: rgba(90, 122, 153, 0.35);
+}
+
+.carte-choix:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(184, 159, 122, 0.15);
+}
+
+.carte-choix-evangile:hover {
+    border-color: #5a7a99;
+    box-shadow: 0 4px 12px rgba(90, 122, 153, 0.18);
+}
+
+.carte-choix-texte-libre:hover {
+    border-color: #c9b074;
+}
+
+.carte-choix-icone {
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.carte-choix-icone-bleu { color: #5a7a99; }
+.carte-choix-icone-or { color: #c9b074; }
+
+.carte-choix-texte {
+    flex: 1;
+}
+
+.carte-choix-titre {
+    font-weight: 500;
+    margin-bottom: 0.15rem;
+}
+
+.carte-choix-soustitre {
+    font-size: 0.82rem;
+    color: #8b6f47;
+    font-style: italic;
+}
+
+/* ============================================================
+   Bloc date en ligne (écran évangile)
+   ============================================================ */
+
+.bloc-date-ligne {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 0.2rem;
+}
+
+.date-affichee {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.05rem;
+    font-style: italic;
+    color: #5d4a2f;
+    letter-spacing: 0.3px;
+}
+
+.conteneur-icone-date {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-left: 0.3rem;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.conteneur-icone-date:hover {
+    background-color: rgba(184, 159, 122, 0.15);
+}
+
+.icone-calendrier {
+    color: #8b6f47;
+    font-size: 18px;
+    pointer-events: none;
+    transition: color 0.2s ease;
+}
+
+.conteneur-icone-date:hover .icone-calendrier {
+    color: #5d4a2f;
+}
+
+.input-date-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+}
+
+.input-date-overlay::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* ============================================================
+   Carte évangile encadrée
+   ============================================================ */
+
+.carte-evangile {
+    background: #fefdf8;
+    border: 0.5px solid rgba(184, 159, 122, 0.35);
+    border-radius: 12px;
+    padding: 1.5rem 1.75rem;
+    margin: 0 0 1rem;
+    box-shadow: 0 2px 8px rgba(184, 159, 122, 0.06);
+    text-align: left;
+}
+
+.entete-evangile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 0.5px solid rgba(184, 159, 122, 0.25);
+}
+
+.barre-doree {
+    width: 3px;
+    height: 18px;
+    background: #c9b074;
+    border-radius: 2px;
+}
+
+.label-evangile {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #3d2817;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+.ref-biblique {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    color: #8b6f47;
+}
+
+.incipit {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.05rem;
+    font-style: italic;
+    font-weight: 500;
+    color: #5d4a2f;
+    margin: 0 0 1rem;
+    text-align: center;
+}
+
+.evangile-rendu {
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.02rem;
+    line-height: 1.7;
+    color: #2c2418;
+    text-align: left;
+}
+
+.evangile-rendu p {
+    margin: 0 0 0.7rem;
+}
+
+.evangile-rendu .sous-titre-lecture {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #3d2817;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin: 1.5rem 0 0.6rem;
+}
+
+.evangile-rendu .ref-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 400;
+    color: #8b6f47;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.evangile-rendu .separateur-lecture {
+    border-top: 0.5px solid rgba(184, 159, 122, 0.3);
+    margin: 1.5rem 0 0;
+}
+
+.evangile-rendu .incipit-sub {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1rem;
+    font-style: italic;
+    color: #5d4a2f;
+    margin: 0 0 0.8rem;
+    text-align: center;
+}
+
+.evangile-textarea-edition {
+    width: 100%;
+    min-height: 240px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.02rem;
+    line-height: 1.7;
+    color: #2c2418;
+    outline: none;
+    resize: vertical;
+}
+
+.evangile-textarea-edition:focus {
+    border: none;
+    outline: none;
+}
+
+.evangile-textarea-edition::placeholder {
+    color: #a08862;
+    font-style: italic;
+}
+
+/* ============================================================
+   Section administration
+   ============================================================ */
+
+.admin-section {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 0.5px solid rgba(184, 159, 122, 0.2);
+    text-align: center;
+}
+
+.lien-admin {
+    background: none;
+    border: none;
+    color: #b89f7a;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-style: italic;
+    cursor: pointer;
+    padding: 0.4rem 0.6rem;
+    letter-spacing: 0.5px;
+    transition: color 0.2s ease;
+}
+
+.lien-admin:hover {
+    color: #8b6f47;
+}
+
+.panneau-admin {
+    max-width: 380px;
+    margin: 1.5rem auto 0;
+    padding: 1.5rem;
+    background: #fefdf8;
+    border: 0.5px solid rgba(184, 159, 122, 0.25);
+    border-radius: 10px;
+    text-align: center;
+}
+
+.admin-info {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 0.95rem;
+    font-style: italic;
+    color: #5d4a2f;
+    margin: 0 0 1rem;
+}
+
+.admin-count {
+    font-weight: 600;
+    color: #3d2817;
+    font-style: normal;
+}
+
+.admin-input {
+    width: 100%;
+    background: white;
+    border: 0.5px solid rgba(184, 159, 122, 0.4);
+    border-radius: 6px;
+    padding: 0.6rem 0.9rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    color: #3d2817;
+    outline: none;
+    margin: 0 0 0.8rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease;
+}
+
+.admin-input:focus {
+    border-color: #c9b074;
+}
+
+.admin-input::placeholder {
+    color: #b89f7a;
+    font-style: italic;
+}
+
+.bouton-admin-action {
+    background-color: transparent;
+    color: #a04020;
+    border: 1px solid rgba(160, 64, 32, 0.4);
+    border-radius: 6px;
+    padding: 0.55rem 1.2rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.bouton-admin-action:hover {
+    background-color: #a04020;
+    color: white;
+}
+
+.admin-message {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-style: italic;
+    margin: 0.8rem 0 0;
+    color: #8b6f47;
+    min-height: 1.2rem;
+}
+
+.admin-message-erreur {
+    color: #a04020;
+    font-style: normal;
+}
+
+.admin-message-succes {
+    color: #4a7a4a;
+    font-style: normal;
+}
+
+/* ============================================================
+   Mobile (largeur < 640px)
+   ============================================================ */
+
+@media (max-width: 640px) {
+    .container {
+        padding: 2rem 1.25rem 3rem;
+    }
+
+    .photo-luisa {
+        width: 200px;
+    }
+
+    .titre {
+        font-size: 2rem;
+    }
+
+    .sous-titre {
+        font-size: 1.05rem;
+    }
+
+    .carte-extrait {
+        padding: 1.25rem 1.5rem;
+    }
+}
+
+/* ============================================================
+   Carte évangile éditable au clic
+   ============================================================ */
+
+.evangile-rendu {
+    cursor: text;
+}
+
+.evangile-rendu:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 4px;
+}
