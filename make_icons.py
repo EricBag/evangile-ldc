@@ -9,7 +9,7 @@ ivoire (#fdfaf2), photo occupant ~80 % (marge ivoire autour).
 """
 from PIL import Image, ImageDraw
 
-SRC = "static/luisa.jpg"
+SRC = "static/luisa_icon.jpg"
 IVORY = (253, 250, 242)        # #fdfaf2
 PHOTO_RATIO = 0.95             # la photo occupe 95 % de l'icône (fine marge ivoire)
 SUPERSAMPLE = 4                # anti-crénelage du cercle
