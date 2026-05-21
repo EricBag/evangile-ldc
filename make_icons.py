@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw
 
 SRC = "static/luisa.jpg"
 IVORY = (253, 250, 242)        # #fdfaf2
-PHOTO_RATIO = 0.80             # la photo occupe 80 % de l'icône
+PHOTO_RATIO = 0.95             # la photo occupe 95 % de l'icône (fine marge ivoire)
 SUPERSAMPLE = 4                # anti-crénelage du cercle
 
 ICONS = [
