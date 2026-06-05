@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture — Évangile du jour × Livre du Ciel</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+           margin: 0; padding: 2rem; background: #fdfaf2; color: #3b3326; }
+    h1 { color: #8a6d3b; font-weight: 600; }
+    p.note { color: #7a7060; max-width: 60rem; }
+    .diagramme { background: #fff; border: 1px solid #e7ddc7;
+                 border-radius: 12px; padding: 1.5rem; overflow: auto; }
+    .mermaid { display: flex; justify-content: center; }
+  </style>
+</head>
+<body>
+  <h1>Architecture du projet — Évangile du jour × Livre du Ciel</h1>
+  <p class="note">
+    Schéma de toutes les briques du projet et de leurs liens, du code source
+    jusqu'au smartphone de l'utilisateur. (Nécessite une connexion Internet pour
+    afficher le diagramme.)
+  </p>
+
+  <div class="diagramme">
+    <pre class="mermaid">
+flowchart TB
+    subgraph DEV["🧑‍💻 Ton poste (développement)"]
+        CODE["Code source<br/>Python + HTML/CSS/JS"]
+        GIT["Git"]
+    end
+
+    subgraph GH["☁️ GitHub"]
+        REPO["Dépôt EricBag/evangile-ldc<br/>branche main"]
+    end
+
+    subgraph RW["🚂 Railway — hébergement (HTTPS)"]
+        BUILD["Builder Railpack + mise<br/>installe Python 3.11"]
+        UVICORN["uvicorn<br/>serveur web ASGI"]
+        subgraph APP["Application FastAPI · main.py"]
+            FASTAPI["FastAPI<br/>routes + API + sécurité"]
+            JINJA["Jinja2<br/>pages HTML (index, login)"]
+            STATIC["Fichiers statiques<br/>CSS · JS · icônes · manifest · sw.js"]
+            RAG["ldc_proZ.py<br/>moteur de recherche (RAG)"]
+            AELFC["aelf_client.py"]
+            CACHE[("cache_evangiles/<br/>résultats en JSON")]
+            PDF["ldc.pdf<br/>Livre du Ciel"]
+        end
+    end
+
+    subgraph LIBS["📚 Bibliothèques Python (utilisées par le RAG)"]
+        PYMUPDF["PyMuPDF<br/>lit le PDF"]
+        BM25["rank-bm25<br/>recherche par mots-clés"]
+        NUMPY["numpy<br/>calcul sur embeddings"]
+    end
+
+    subgraph EXT["🌐 Services externes"]
+        OPENAI["API OpenAI<br/>GPT-4.1 + embeddings"]
+        AELF["API AELF<br/>lectures liturgiques du jour"]
+    end
+
+    subgraph USER["📱 Utilisateur"]
+        PHONE["Smartphone / navigateur<br/>PWA installable"]
+    end
+
+    CODE --> GIT -->|git push| REPO
+    REPO -->|auto-deploy| BUILD --> UVICORN --> FASTAPI
+
+    FASTAPI --> JINJA
+    FASTAPI --> STATIC
+    FASTAPI --> AELFC
+    FASTAPI --> RAG
+    RAG --> CACHE
+    RAG --> PDF
+    RAG --> PYMUPDF
+    RAG --> BM25
+    RAG --> NUMPY
+    RAG -->|requêtes IA payantes| OPENAI
+    AELFC -->|HTTP| AELF
+
+    PHONE <-->|HTTPS| FASTAPI
+    STATIC -.->|sw.js + manifest = installation| PHONE
+    </pre>
+  </div>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+  </script>
+</body>
+</html>
