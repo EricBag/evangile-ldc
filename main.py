@@ -9,7 +9,10 @@ app_evangile.py, seule la couche présentation change.
 from pathlib import Path
 import os
 import json
+import time
 import secrets
+import threading
+from collections import defaultdict, deque
 from datetime import date, datetime
 from typing import Optional
 
@@ -18,6 +21,7 @@ from fastapi import FastAPI, Request, Form, HTTPException, Cookie, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
 # Charger .env (mais ne pas écraser les vars système existantes)
@@ -35,6 +39,12 @@ CACHE_EVANGILES_DIR = BASE_DIR / "cache_evangiles"
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 SESSION_SECRET = secrets.token_hex(32)  # régénéré à chaque démarrage
+
+# Limites anti-abus / anti-explosion de coût (configurables sans redéploiement)
+RL_ECLAIRAGE_PER_MIN = int(os.environ.get("RL_ECLAIRAGE_PER_MIN", "5"))         # par IP / minute
+RL_ECLAIRAGE_PER_DAY_IP = int(os.environ.get("RL_ECLAIRAGE_PER_DAY_IP", "30"))  # par IP / jour
+RL_ECLAIRAGE_GLOBAL_PER_DAY = int(os.environ.get("RL_ECLAIRAGE_GLOBAL_PER_DAY", "200"))  # global / jour
+RL_LOGIN_PER_MIN = int(os.environ.get("RL_LOGIN_PER_MIN", "10"))               # tentatives login / IP / minute
 
 # ============================================================
 # Imports lourds (après chargement .env pour OPENAI_API_KEY)
@@ -205,6 +215,45 @@ def is_authenticated(session: Optional[str]) -> bool:
     return session == SESSION_SECRET
 
 # ------------------------------------------------------------
+# Rate limiting (en mémoire : par IP + plafond global quotidien)
+# ------------------------------------------------------------
+
+_RL_LOCK = threading.Lock()
+_RL_EVENTS: dict = defaultdict(deque)        # (scope, ip) -> deque[timestamps]
+_RL_GLOBAL = {"date": None, "count": 0}      # plafond global d'analyses GPT du jour
+
+def client_ip(request: Request) -> str:
+    """IP réelle du client (derrière le proxy Railway via X-Forwarded-For)."""
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+def rate_limit_ip(scope: str, ip: str, per_min: int, per_day: int) -> bool:
+    """Enregistre la requête et renvoie False si l'IP dépasse une des limites."""
+    now = time.time()
+    with _RL_LOCK:
+        dq = _RL_EVENTS[(scope, ip)]
+        while dq and dq[0] <= now - 86400:        # purge au-delà de 24 h
+            dq.popleft()
+        last_min = sum(1 for t in dq if t > now - 60)
+        if last_min >= per_min or len(dq) >= per_day:
+            return False
+        dq.append(now)
+        return True
+
+def global_quota_ok(max_per_day: int, today_iso: str) -> bool:
+    """Plafond global d'analyses GPT par jour (incrémente le compteur si autorisé)."""
+    with _RL_LOCK:
+        if _RL_GLOBAL["date"] != today_iso:
+            _RL_GLOBAL["date"] = today_iso
+            _RL_GLOBAL["count"] = 0
+        if _RL_GLOBAL["count"] >= max_per_day:
+            return False
+        _RL_GLOBAL["count"] += 1
+        return True
+
+# ------------------------------------------------------------
 # Routes
 # ------------------------------------------------------------
 
@@ -216,7 +265,7 @@ async def root(request: Request, session: Optional[str] = Cookie(default=None)):
 
     # Pré-charger l'évangile du jour
     today = date.today().isoformat()
-    state = build_evangile_state(today, include_premiere_lecture=False)
+    state = await run_in_threadpool(build_evangile_state, today, False)
 
     JOURS_FR = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"]
     MOIS_FR = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"]
@@ -244,6 +293,13 @@ async def service_worker():
 @app.post("/login", response_class=HTMLResponse)
 async def login(request: Request, password: str = Form(...)):
     """Vérifie le mot de passe et pose un cookie de session."""
+    if not rate_limit_ip("login", client_ip(request), RL_LOGIN_PER_MIN, 100_000):
+        return templates.TemplateResponse(
+            request,
+            "login.html",
+            {"request": request, "error": "Trop de tentatives. Patientez une minute."},
+            status_code=429,
+        )
     if password == APP_PASSWORD:
         response = RedirectResponse(url="/", status_code=303)
         response.set_cookie(key="session", value=SESSION_SECRET, httponly=True, samesite="lax")
@@ -265,11 +321,12 @@ async def api_evangile(
     if not is_authenticated(session):
         raise HTTPException(status_code=401, detail="Non authentifié")
 
-    state = build_evangile_state(date_iso, include_premiere_lecture)
+    state = await run_in_threadpool(build_evangile_state, date_iso, include_premiere_lecture)
     return JSONResponse(state)
 
 @app.post("/api/eclairage")
 async def api_eclairage(
+    request: Request,
     evangile_text: str = Form(...),
     session: Optional[str] = Cookie(default=None),
 ):
@@ -280,13 +337,30 @@ async def api_eclairage(
     if not evangile_text.strip():
         raise HTTPException(status_code=400, detail="Texte vide")
 
-    # Cache check
+    # Anti-abus : limite par IP (anti-flood + quota journalier individuel)
+    ip = client_ip(request)
+    if not rate_limit_ip("eclairage", ip, RL_ECLAIRAGE_PER_MIN, RL_ECLAIRAGE_PER_DAY_IP):
+        raise HTTPException(
+            status_code=429,
+            detail="Trop de demandes. Réessayez dans un moment.",
+        )
+
+    # Cache check (réponse gratuite : ne consomme pas le quota global GPT)
     cached = _load_cached_passages(evangile_text)
     if cached is not None:
         return JSONResponse({"passages": cached, "from_cache": True})
 
+    # Plafond global quotidien : borne absolue du coût OpenAI
+    if not global_quota_ok(RL_ECLAIRAGE_GLOBAL_PER_DAY, date.today().isoformat()):
+        raise HTTPException(
+            status_code=429,
+            detail="Quota d'analyses du jour atteint. Merci de revenir demain.",
+        )
+
+    # Appel OpenAI exécuté dans un threadpool : ne bloque pas la boucle async
     try:
-        passages = analyser_evangile(
+        passages = await run_in_threadpool(
+            analyser_evangile,
             evangile_text, DICTEES, SEGMENTS, BM25, EMBS, DEFAULT_CACHE,
         )
     except Exception as e:
