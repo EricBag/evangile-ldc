@@ -15,7 +15,7 @@ from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Form, HTTPException, Cookie, Response
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -231,6 +231,15 @@ async def root(request: Request, session: Optional[str] = Cookie(default=None)):
         "evangile_text": state["text"],
         "error": state["error"],
     })
+
+@app.get("/sw.js")
+async def service_worker():
+    """Sert le service worker depuis la racine pour qu'il contrôle tout le site (scope '/')."""
+    return FileResponse(
+        BASE_DIR / "static" / "sw.js",
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"},
+    )
 
 @app.post("/login", response_class=HTMLResponse)
 async def login(request: Request, password: str = Form(...)):

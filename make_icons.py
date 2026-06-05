@@ -15,8 +15,9 @@ PHOTO_RATIO = 0.95             # la photo occupe 95 % de l'icône (fine marge iv
 SUPERSAMPLE = 4                # anti-crénelage du cercle
 
 ICONS = [
-    ("static/icon-180.png", 180),
+    ("static/icon-512.png", 512),
     ("static/icon-192.png", 192),
+    ("static/icon-180.png", 180),
     ("static/favicon.png", 32),
 ]
 
