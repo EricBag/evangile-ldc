@@ -435,22 +435,24 @@ async def api_admin_clear_cache(
     n = _clear_cache_evangiles()
     return JSONResponse({"deleted": n})
 
-@app.get("/api/admin/cache-count")
-async def api_admin_cache_count(session: Optional[str] = Cookie(default=None)):
-    """Renvoie le nombre d'évangiles en cache (lecture seule, accès libre tant que session OK)."""
+@app.post("/api/admin/overview")
+async def api_admin_overview(
+    admin_password: str = Form(...),
+    session: Optional[str] = Cookie(default=None),
+):
+    """Cache + statistiques du jour. Protégé par le mot de passe admin."""
     if not is_authenticated(session):
         raise HTTPException(status_code=401, detail="Non authentifié")
-    if not CACHE_EVANGILES_DIR.exists():
-        return JSONResponse({"count": 0})
-    count = sum(1 for _ in CACHE_EVANGILES_DIR.glob("*.json"))
-    return JSONResponse({"count": count})
+    if not ADMIN_PASSWORD or admin_password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=403, detail="Mot de passe admin incorrect")
 
-@app.get("/api/admin/stats")
-async def api_admin_stats(session: Optional[str] = Cookie(default=None)):
-    """Statistiques d'usage du jour (depuis le dernier redémarrage)."""
-    if not is_authenticated(session):
-        raise HTTPException(status_code=401, detail="Non authentifié")
-    return JSONResponse(_stats_snapshot(date.today().isoformat()))
+    count = 0
+    if CACHE_EVANGILES_DIR.exists():
+        count = sum(1 for _ in CACHE_EVANGILES_DIR.glob("*.json"))
+    return JSONResponse({
+        "count": count,
+        "stats": _stats_snapshot(date.today().isoformat()),
+    })
 
 # ============================================================
 # Lancement

@@ -118,26 +118,33 @@
                 Administration
             </button>
             <div id="panneau-admin" class="panneau-admin" style="display:none;">
-                <p class="admin-info">
-                    Évangiles en cache : <span id="admin-cache-count" class="admin-count">…</span>
-                </p>
-                <p class="admin-info">
-                    Aujourd'hui (depuis le dernier redémarrage) :<br>
-                    Visiteurs : <span id="stat-visiteurs" class="admin-count">…</span> ·
-                    Pages vues : <span id="stat-pages" class="admin-count">…</span> ·
-                    Demandes d'éclairage : <span id="stat-requetes" class="admin-count">…</span> ·
-                    Analyses GPT : <span id="stat-gpt" class="admin-count">…</span> ·
-                    Servies par le cache : <span id="stat-cache" class="admin-count">…</span>
-                </p>
-                <input
-                    type="password"
-                    id="admin-password"
-                    class="admin-input"
-                    placeholder="Mot de passe administrateur"
-                />
-                <button type="button" id="bouton-vider-cache" class="bouton-admin-action">
-                    Vider le cache des évangiles
-                </button>
+                <div id="admin-lock">
+                    <input
+                        type="password"
+                        id="admin-password"
+                        class="admin-input"
+                        placeholder="Mot de passe administrateur"
+                    />
+                    <button type="button" id="bouton-admin-acces" class="bouton-admin-action">
+                        Accéder
+                    </button>
+                </div>
+                <div id="admin-contenu" style="display:none;">
+                    <p class="admin-info">
+                        Évangiles en cache : <span id="admin-cache-count" class="admin-count">…</span>
+                    </p>
+                    <p class="admin-info">
+                        Aujourd'hui (depuis le dernier redémarrage) :<br>
+                        Visiteurs : <span id="stat-visiteurs" class="admin-count">…</span> ·
+                        Pages vues : <span id="stat-pages" class="admin-count">…</span> ·
+                        Demandes d'éclairage : <span id="stat-requetes" class="admin-count">…</span> ·
+                        Analyses GPT : <span id="stat-gpt" class="admin-count">…</span> ·
+                        Servies par le cache : <span id="stat-cache" class="admin-count">…</span>
+                    </p>
+                    <button type="button" id="bouton-vider-cache" class="bouton-admin-action">
+                        Vider le cache des évangiles
+                    </button>
+                </div>
                 <p id="admin-message" class="admin-message"></p>
             </div>
         </div>
@@ -408,62 +415,89 @@
             URL.revokeObjectURL(url);
         });
 
-        // Panneau administration
+        // Panneau administration (protégé par le mot de passe admin)
         const boutonToggleAdmin = document.getElementById('bouton-toggle-admin');
         const panneauAdmin = document.getElementById('panneau-admin');
+        const adminLock = document.getElementById('admin-lock');
+        const adminContenu = document.getElementById('admin-contenu');
         const adminCacheCount = document.getElementById('admin-cache-count');
         const adminPassword = document.getElementById('admin-password');
+        const boutonAdminAcces = document.getElementById('bouton-admin-acces');
         const boutonViderCache = document.getElementById('bouton-vider-cache');
         const adminMessage = document.getElementById('admin-message');
 
-        async function chargerCacheCount() {
-            try {
-                const r = await fetch('/api/admin/cache-count');
-                if (r.ok) {
-                    const d = await r.json();
-                    adminCacheCount.textContent = d.count;
-                }
-            } catch (e) { adminCacheCount.textContent = '?'; }
+        let adminPwd = '';  // mot de passe mémorisé après déverrouillage (pour les actions)
+
+        function appliquerOverview(d) {
+            adminCacheCount.textContent = d.count;
+            const s = d.stats || {};
+            document.getElementById('stat-visiteurs').textContent = s.visiteurs ?? '?';
+            document.getElementById('stat-pages').textContent = s.page_views ?? '?';
+            document.getElementById('stat-requetes').textContent = s.eclairage_requests ?? '?';
+            document.getElementById('stat-gpt').textContent = s.gpt_analyses ?? '?';
+            document.getElementById('stat-cache').textContent = s.cache_hits ?? '?';
         }
 
-        async function chargerStats() {
-            try {
-                const r = await fetch('/api/admin/stats');
-                if (r.ok) {
-                    const d = await r.json();
-                    document.getElementById('stat-visiteurs').textContent = d.visiteurs;
-                    document.getElementById('stat-pages').textContent = d.page_views;
-                    document.getElementById('stat-requetes').textContent = d.eclairage_requests;
-                    document.getElementById('stat-gpt').textContent = d.gpt_analyses;
-                    document.getElementById('stat-cache').textContent = d.cache_hits;
-                }
-            } catch (e) {}
+        async function chargerOverview(pwd) {
+            const formData = new FormData();
+            formData.append('admin_password', pwd);
+            const r = await fetch('/api/admin/overview', { method: 'POST', body: formData });
+            if (!r.ok) {
+                const err = await r.json().catch(() => ({}));
+                throw new Error(err.detail || 'Erreur');
+            }
+            return await r.json();
         }
 
-        boutonToggleAdmin.addEventListener('click', async () => {
+        function verrouillerAdmin() {
+            adminPwd = '';
+            adminContenu.style.display = 'none';
+            adminLock.style.display = '';
+            adminPassword.value = '';
+            adminMessage.textContent = '';
+            adminMessage.className = 'admin-message';
+        }
+
+        boutonToggleAdmin.addEventListener('click', () => {
             const visible = panneauAdmin.style.display !== 'none';
             if (visible) {
                 panneauAdmin.style.display = 'none';
             } else {
+                verrouillerAdmin();              // toujours reverrouillé à l'ouverture
                 panneauAdmin.style.display = '';
-                await chargerCacheCount();
-                await chargerStats();
             }
         });
 
-        boutonViderCache.addEventListener('click', async () => {
+        boutonAdminAcces.addEventListener('click', async () => {
             const pwd = adminPassword.value;
             if (!pwd) {
                 adminMessage.textContent = 'Veuillez saisir le mot de passe.';
                 adminMessage.className = 'admin-message admin-message-erreur';
                 return;
             }
+            adminMessage.textContent = 'Vérification…';
+            adminMessage.className = 'admin-message';
+            try {
+                const d = await chargerOverview(pwd);
+                adminPwd = pwd;
+                appliquerOverview(d);
+                adminLock.style.display = 'none';
+                adminContenu.style.display = '';
+                adminMessage.textContent = '';
+            } catch (e) {
+                adminMessage.textContent = 'Erreur : ' + e.message;
+                adminMessage.className = 'admin-message admin-message-erreur';
+            }
+        });
+
+        boutonViderCache.addEventListener('click', async () => {
+            if (!adminPwd) return;
             adminMessage.textContent = 'Suppression en cours…';
             adminMessage.className = 'admin-message';
 
             try {
                 const formData = new FormData();
-                formData.append('admin_password', pwd);
+                formData.append('admin_password', adminPwd);
                 const r = await fetch('/api/admin/clear-cache', {
                     method: 'POST',
                     body: formData,
@@ -475,8 +509,7 @@
                 const d = await r.json();
                 adminMessage.textContent = `${d.deleted} évangile(s) supprimé(s).`;
                 adminMessage.className = 'admin-message admin-message-succes';
-                adminPassword.value = '';
-                await chargerCacheCount();
+                try { appliquerOverview(await chargerOverview(adminPwd)); } catch (e) {}
             } catch (e) {
                 adminMessage.textContent = 'Erreur : ' + e.message;
                 adminMessage.className = 'admin-message admin-message-erreur';
