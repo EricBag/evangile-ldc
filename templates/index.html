@@ -121,6 +121,14 @@
                 <p class="admin-info">
                     Évangiles en cache : <span id="admin-cache-count" class="admin-count">…</span>
                 </p>
+                <p class="admin-info">
+                    Aujourd'hui (depuis le dernier redémarrage) :<br>
+                    Visiteurs : <span id="stat-visiteurs" class="admin-count">…</span> ·
+                    Pages vues : <span id="stat-pages" class="admin-count">…</span> ·
+                    Demandes d'éclairage : <span id="stat-requetes" class="admin-count">…</span> ·
+                    Analyses GPT : <span id="stat-gpt" class="admin-count">…</span> ·
+                    Servies par le cache : <span id="stat-cache" class="admin-count">…</span>
+                </p>
                 <input
                     type="password"
                     id="admin-password"
@@ -418,6 +426,20 @@
             } catch (e) { adminCacheCount.textContent = '?'; }
         }
 
+        async function chargerStats() {
+            try {
+                const r = await fetch('/api/admin/stats');
+                if (r.ok) {
+                    const d = await r.json();
+                    document.getElementById('stat-visiteurs').textContent = d.visiteurs;
+                    document.getElementById('stat-pages').textContent = d.page_views;
+                    document.getElementById('stat-requetes').textContent = d.eclairage_requests;
+                    document.getElementById('stat-gpt').textContent = d.gpt_analyses;
+                    document.getElementById('stat-cache').textContent = d.cache_hits;
+                }
+            } catch (e) {}
+        }
+
         boutonToggleAdmin.addEventListener('click', async () => {
             const visible = panneauAdmin.style.display !== 'none';
             if (visible) {
@@ -425,6 +447,7 @@
             } else {
                 panneauAdmin.style.display = '';
                 await chargerCacheCount();
+                await chargerStats();
             }
         });
 

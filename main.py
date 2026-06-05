@@ -254,6 +254,51 @@ def global_quota_ok(max_per_day: int, today_iso: str) -> bool:
         return True
 
 # ------------------------------------------------------------
+# Statistiques d'usage du jour (en mémoire, remises à zéro au redémarrage)
+# ------------------------------------------------------------
+
+_STATS_LOCK = threading.Lock()
+_STATS = {
+    "date": None,
+    "page_views": 0,        # pages d'accueil servies
+    "eclairage_requests": 0,  # demandes d'éclairage (cache + GPT)
+    "gpt_analyses": 0,      # analyses réellement calculées par GPT
+    "cache_hits": 0,        # demandes servies depuis le cache
+    "ips": set(),           # IP distinctes du jour ≈ visiteurs
+}
+
+def _stats_record(today_iso: str, *, page_view=False, eclairage=False,
+                  gpt=False, cache_hit=False, ip: Optional[str] = None) -> None:
+    with _STATS_LOCK:
+        if _STATS["date"] != today_iso:
+            _STATS.update(date=today_iso, page_views=0, eclairage_requests=0,
+                          gpt_analyses=0, cache_hits=0, ips=set())
+        if page_view:
+            _STATS["page_views"] += 1
+        if eclairage:
+            _STATS["eclairage_requests"] += 1
+        if gpt:
+            _STATS["gpt_analyses"] += 1
+        if cache_hit:
+            _STATS["cache_hits"] += 1
+        if ip:
+            _STATS["ips"].add(ip)
+
+def _stats_snapshot(today_iso: str) -> dict:
+    with _STATS_LOCK:
+        if _STATS["date"] != today_iso:
+            return {"date": today_iso, "page_views": 0, "eclairage_requests": 0,
+                    "gpt_analyses": 0, "cache_hits": 0, "visiteurs": 0}
+        return {
+            "date": _STATS["date"],
+            "page_views": _STATS["page_views"],
+            "eclairage_requests": _STATS["eclairage_requests"],
+            "gpt_analyses": _STATS["gpt_analyses"],
+            "cache_hits": _STATS["cache_hits"],
+            "visiteurs": len(_STATS["ips"]),
+        }
+
+# ------------------------------------------------------------
 # Routes
 # ------------------------------------------------------------
 
@@ -271,6 +316,8 @@ async def root(request: Request, session: Optional[str] = Cookie(default=None)):
     MOIS_FR = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"]
     d = date.fromisoformat(today)
     today_human = f"{JOURS_FR[d.weekday()]} {d.day} {MOIS_FR[d.month-1]} {d.year}"
+
+    _stats_record(today, page_view=True, ip=client_ip(request))
 
     return templates.TemplateResponse(request, "index.html", {
         "request": request,
@@ -345,13 +392,17 @@ async def api_eclairage(
             detail="Trop de demandes. Réessayez dans un moment.",
         )
 
+    today_iso = date.today().isoformat()
+    _stats_record(today_iso, eclairage=True, ip=ip)
+
     # Cache check (réponse gratuite : ne consomme pas le quota global GPT)
     cached = _load_cached_passages(evangile_text)
     if cached is not None:
+        _stats_record(today_iso, cache_hit=True)
         return JSONResponse({"passages": cached, "from_cache": True})
 
     # Plafond global quotidien : borne absolue du coût OpenAI
-    if not global_quota_ok(RL_ECLAIRAGE_GLOBAL_PER_DAY, date.today().isoformat()):
+    if not global_quota_ok(RL_ECLAIRAGE_GLOBAL_PER_DAY, today_iso):
         raise HTTPException(
             status_code=429,
             detail="Quota d'analyses du jour atteint. Merci de revenir demain.",
@@ -366,6 +417,7 @@ async def api_eclairage(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur d'analyse : {e}")
 
+    _stats_record(today_iso, gpt=True)
     _save_cached_passages(evangile_text, passages)
     return JSONResponse({"passages": passages, "from_cache": False})
 
@@ -392,6 +444,13 @@ async def api_admin_cache_count(session: Optional[str] = Cookie(default=None)):
         return JSONResponse({"count": 0})
     count = sum(1 for _ in CACHE_EVANGILES_DIR.glob("*.json"))
     return JSONResponse({"count": count})
+
+@app.get("/api/admin/stats")
+async def api_admin_stats(session: Optional[str] = Cookie(default=None)):
+    """Statistiques d'usage du jour (depuis le dernier redémarrage)."""
+    if not is_authenticated(session):
+        raise HTTPException(status_code=401, detail="Non authentifié")
+    return JSONResponse(_stats_snapshot(date.today().isoformat()))
 
 # ============================================================
 # Lancement
