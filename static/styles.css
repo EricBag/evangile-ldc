@@ -9,6 +9,14 @@
    Reset léger + base
    ============================================================ */
 
+/* ------------------------------------------------------------
+   Couleurs de texte (assombries pour une meilleure lisibilité)
+   #15100a — corps des lectures (évangile, 1ère lecture, Luisa, éclairage)
+   #2a1a0c — texte principal de l'appli (titres, libellés, champs)
+   #473620 — texte secondaire (incipit, dates)
+   #705536 — libellés atténués (sous-titres, méta)
+   ------------------------------------------------------------ */
+
 *, *::before, *::after {
     box-sizing: border-box;
 }
@@ -23,7 +31,7 @@ body {
     padding: 0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background-color: #fdfaf2;
-    color: #3d2817;
+    color: #2a1a0c;
     min-height: 100vh;
 }
 
@@ -57,7 +65,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 2.4rem;
     font-weight: 500;
-    color: #3d2817;
+    color: #2a1a0c;
     margin: 0 0 0.5rem;
     letter-spacing: 0.3px;
     line-height: 1.15;
@@ -67,7 +75,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1.1rem;
     font-style: italic;
-    color: #8b6f47;
+    color: #705536;
     margin: 0 0 2rem;
     font-weight: 400;
 }
@@ -87,7 +95,7 @@ body {
     padding: 0.75rem 1rem;
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1.05rem;
-    color: #3d2817;
+    color: #2a1a0c;
     text-align: center;
     outline: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -156,7 +164,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 2.4rem;
     font-weight: 500;
-    color: #3d2817;
+    color: #2a1a0c;
     margin: 0 0 0.3rem;
     letter-spacing: 0.3px;
     line-height: 1.15;
@@ -167,7 +175,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1.15rem;
     font-style: italic;
-    color: #8b6f47;
+    color: #705536;
     margin: 0 0 2rem;
     font-weight: 400;
 }
@@ -190,7 +198,7 @@ body {
     font-size: 1rem;
     font-style: italic;
     font-weight: 400;
-    color: #5d4a2f;
+    color: #473620;
     margin-bottom: 0.4rem;
     letter-spacing: 0.3px;
 }
@@ -203,7 +211,7 @@ body {
     padding: 0.5rem 0;
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1.1rem;
-    color: #3d2817;
+    color: #2a1a0c;
     text-align: center;
     outline: none;
     transition: border-bottom-color 0.2s ease;
@@ -226,7 +234,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 0.95rem;
     font-style: italic;
-    color: #8b6f47;
+    color: #705536;
     margin: 0 0 1.8rem;
     text-align: center;
     letter-spacing: 0.3px;
@@ -251,7 +259,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1.1rem;
     line-height: 1.85;
-    color: #2c2418;
+    color: #15100a;
     text-align: left;
     resize: vertical;
     min-height: 280px;
@@ -277,7 +285,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1.1rem;
     line-height: 1.85;
-    color: #2c2418;
+    color: #15100a;
     margin-bottom: 1rem;
 }
 
@@ -285,7 +293,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1.05rem;
     font-weight: 600;
-    color: #3d2817;
+    color: #2a1a0c;
     text-transform: uppercase;
     letter-spacing: 0.15em;
     margin: 1.5rem 0 0.3rem;
@@ -302,7 +310,7 @@ body {
     font-size: 1.1rem;
     font-weight: 600;
     font-style: italic;
-    color: #5d4a2f;
+    color: #473620;
     margin: 0.4rem 0 1rem;
 }
 
@@ -313,7 +321,7 @@ body {
 .bouton-modifier {
     background: none;
     border: none;
-    color: #8b6f47;
+    color: #705536;
     font-family: 'Inter', sans-serif;
     font-size: 0.85rem;
     font-style: italic;
@@ -326,7 +334,7 @@ body {
 }
 
 .bouton-modifier:hover {
-    color: #5d4a2f;
+    color: #473620;
 }
 
 .bouton-modifier-icone {
@@ -473,7 +481,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1rem;
     font-style: italic;
-    color: #8b6f47;
+    color: #705536;
     margin: 0;
 }
 
@@ -493,7 +501,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1.6rem;
     font-weight: 500;
-    color: #3d2817;
+    color: #2a1a0c;
     text-align: center;
     margin: 0 0 0.6rem;
     letter-spacing: 0.3px;
@@ -522,7 +530,7 @@ body {
     font-family: 'Inter', sans-serif;
     font-size: 0.78rem;
     font-weight: 600;
-    color: #8b6f47;
+    color: #705536;
     text-transform: uppercase;
     letter-spacing: 0.2em;
     margin: 0 0 1rem;
@@ -535,7 +543,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1.08rem;
     line-height: 1.75;
-    color: #2c2418;
+    color: #15100a;
     white-space: pre-wrap;
     text-align: justify;
     hyphens: auto;
@@ -545,7 +553,7 @@ body {
     font-family: 'Inter', sans-serif;
     font-size: 0.78rem;
     font-weight: 600;
-    color: #8b6f47;
+    color: #705536;
     text-transform: uppercase;
     letter-spacing: 0.2em;
     margin: 1.5rem 0 0.6rem;
@@ -555,7 +563,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1.08rem;
     line-height: 1.75;
-    color: #2c2418;
+    color: #15100a;
     margin: 0;
     text-align: justify;
     hyphens: auto;
@@ -565,7 +573,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1rem;
     font-style: italic;
-    color: #8b6f47;
+    color: #705536;
     text-align: center;
     margin: 2rem 0;
 }
@@ -623,7 +631,7 @@ body {
     padding: 1.1rem 1.25rem;
     font-family: 'Inter', sans-serif;
     font-size: 0.95rem;
-    color: #3d2817;
+    color: #2a1a0c;
     cursor: pointer;
     text-align: left;
     display: flex;
@@ -669,7 +677,7 @@ body {
 
 .carte-choix-soustitre {
     font-size: 0.82rem;
-    color: #8b6f47;
+    color: #705536;
     font-style: italic;
 }
 
@@ -689,7 +697,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1.05rem;
     font-style: italic;
-    color: #5d4a2f;
+    color: #473620;
     letter-spacing: 0.3px;
 }
 
@@ -710,14 +718,14 @@ body {
 }
 
 .icone-calendrier {
-    color: #8b6f47;
+    color: #705536;
     font-size: 18px;
     pointer-events: none;
     transition: color 0.2s ease;
 }
 
 .conteneur-icone-date:hover .icone-calendrier {
-    color: #5d4a2f;
+    color: #473620;
 }
 
 .input-date-overlay {
@@ -778,7 +786,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 0.95rem;
     font-weight: 600;
-    color: #3d2817;
+    color: #2a1a0c;
     letter-spacing: 0.15em;
     text-transform: uppercase;
 }
@@ -786,7 +794,7 @@ body {
 .ref-biblique {
     font-family: 'Inter', sans-serif;
     font-size: 0.78rem;
-    color: #8b6f47;
+    color: #705536;
 }
 
 .incipit {
@@ -794,7 +802,7 @@ body {
     font-size: 1.05rem;
     font-style: italic;
     font-weight: 500;
-    color: #5d4a2f;
+    color: #473620;
     margin: 0 0 1rem;
     text-align: center;
 }
@@ -806,7 +814,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1.02rem;
     line-height: 1.7;
-    color: #2c2418;
+    color: #15100a;
     text-align: left;
 }
 
@@ -818,7 +826,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 0.95rem;
     font-weight: 600;
-    color: #3d2817;
+    color: #2a1a0c;
     text-transform: uppercase;
     letter-spacing: 0.15em;
     margin: 1.5rem 0 0.6rem;
@@ -828,7 +836,7 @@ body {
     font-family: 'Inter', sans-serif;
     font-size: 0.78rem;
     font-weight: 400;
-    color: #8b6f47;
+    color: #705536;
     text-transform: none;
     letter-spacing: 0;
 }
@@ -842,7 +850,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1rem;
     font-style: italic;
-    color: #5d4a2f;
+    color: #473620;
     margin: 0 0 0.8rem;
     text-align: center;
 }
@@ -857,7 +865,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1.02rem;
     line-height: 1.7;
-    color: #2c2418;
+    color: #15100a;
     outline: none;
     resize: vertical;
 }
@@ -897,7 +905,7 @@ body {
 }
 
 .lien-admin:hover {
-    color: #8b6f47;
+    color: #705536;
 }
 
 .panneau-admin {
@@ -914,13 +922,13 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 0.95rem;
     font-style: italic;
-    color: #5d4a2f;
+    color: #473620;
     margin: 0 0 1rem;
 }
 
 .admin-count {
     font-weight: 600;
-    color: #3d2817;
+    color: #2a1a0c;
     font-style: normal;
 }
 
@@ -932,7 +940,7 @@ body {
     padding: 0.6rem 0.9rem;
     font-family: 'Inter', sans-serif;
     font-size: 0.9rem;
-    color: #3d2817;
+    color: #2a1a0c;
     outline: none;
     margin: 0 0 0.8rem;
     box-sizing: border-box;
@@ -971,7 +979,7 @@ body {
     font-size: 0.85rem;
     font-style: italic;
     margin: 0.8rem 0 0;
-    color: #8b6f47;
+    color: #705536;
     min-height: 1.2rem;
 }
 
@@ -1066,7 +1074,7 @@ body {
 .bouton-installer:hover {
     background-color: rgba(201, 176, 116, 0.12);
     border-color: #c9b074;
-    color: #8b6f47;
+    color: #705536;
     transform: translateY(-1px);
 }
 
@@ -1096,7 +1104,7 @@ body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 1.7rem;
     font-weight: 500;
-    color: #3d2817;
+    color: #2a1a0c;
     margin: 0 0 1.2rem;
     text-align: center;
 }
@@ -1116,7 +1124,7 @@ body {
     gap: 0.8rem;
     font-size: 1rem;
     line-height: 1.45;
-    color: #3d2817;
+    color: #2a1a0c;
 }
 
 .install-num {
@@ -1140,7 +1148,7 @@ body {
 .install-note {
     font-size: 0.85rem;
     font-style: italic;
-    color: #8b6f47;
+    color: #705536;
     margin: 1.3rem 0 1.4rem;
     line-height: 1.4;
     text-align: center;
