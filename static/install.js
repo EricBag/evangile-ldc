@@ -30,7 +30,12 @@
   var bouton = document.createElement("button");
   bouton.type = "button";
   bouton.className = "bouton-installer";
-  bouton.innerHTML = "📲 Installer l'application";
+  bouton.innerHTML =
+    '<svg class="bouton-installer-icone" width="17" height="17" viewBox="0 0 24 24" ' +
+    'fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" ' +
+    'stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>' +
+    "<span>Installer l'application</span>";
   bouton.style.display = "none";
   zone.appendChild(bouton);
 
