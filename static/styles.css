@@ -22,8 +22,9 @@
 }
 
 html {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    /* lissage par défaut (subpixel) : rend le texte plus dense / plus foncé,
+       notamment sur les écrans de smartphone */
+    text-rendering: optimizeLegibility;
 }
 
 body {
@@ -1171,4 +1172,22 @@ body {
 
 .install-fermer:hover {
     background-color: #4a6783;
+}
+
+/* ============================================================
+   LISIBILITÉ MOBILE — texte plus épais (plus foncé à l'œil)
+   Sur smartphone, les traits fins de la police serif paraissent
+   plus clairs ; on épaissit le corps des lectures et l'interface.
+   ============================================================ */
+
+.evangile-rendu,
+.evangile-textarea,
+.evangile-textarea-edition,
+.texte-extrait,
+.texte-eclairage {
+    font-weight: 500;
+}
+
+.evangile-rendu p {
+    font-weight: 500;
 }
