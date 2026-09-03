@@ -424,6 +424,65 @@ body {
     color: #3a2c18;
 }
 
+/* Selecteur de corpus */
+.bloc-sources {
+    margin: 0 0 1.75rem;
+    text-align: center;
+}
+
+.label-sources {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #4a3820;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin: 0 0 0.7rem;
+}
+
+.selecteur-sources {
+    display: inline-flex;
+    border: 1px solid rgba(184, 159, 122, 0.55);
+    border-radius: 22px;
+    overflow: hidden;
+    background: #fefdf8;
+}
+
+.option-source {
+    background: transparent;
+    border: none;
+    border-right: 1px solid rgba(184, 159, 122, 0.35);
+    padding: 0.5rem 1.15rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #5a4a30;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.option-source:last-child {
+    border-right: none;
+}
+
+.option-source:hover:not(.option-source-active) {
+    background-color: rgba(201, 176, 116, 0.14);
+}
+
+.option-source-active {
+    background-color: #c9b074;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.auteur-extrait {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 0.98rem;
+    font-style: italic;
+    color: #6b5637;
+    margin: -0.6rem 0 0.9rem;
+}
+
 /* Bouton principal */
 .bloc-bouton {
     margin: 0 0 1.5rem;

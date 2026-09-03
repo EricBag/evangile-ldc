@@ -20,7 +20,7 @@ import argparse
 import pickle
 import hashlib
 from dataclasses import dataclass
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, Sequence
 
 import numpy as np
 import fitz  # PyMuPDF
@@ -125,11 +125,21 @@ def save_motifs_cache(cache_dir: str, pericope_hash: str, data: Dict):
 
 
 # ------------------------------------------------------------
+#  SOURCES DU CORPUS
+# ------------------------------------------------------------
+
+SOURCE_LUISA = "luisa"
+SOURCE_FAUSTINE = "faustine"
+SOURCES_CONNUES = (SOURCE_LUISA, SOURCE_FAUSTINE)
+
+
+# ------------------------------------------------------------
 #  DATACLASSES
 # ------------------------------------------------------------
 
 @dataclass
 class Dictee:
+    """Une dictée du « Livre du Ciel » (corpus Luisa Piccarreta)."""
     tome: Optional[int]
     date: Optional[str]
     page_start: int
@@ -137,11 +147,48 @@ class Dictee:
 
 
 @dataclass
+class Paragraphe:
+    """Un paragraphe numéroté du « Petit Journal » (corpus sainte Faustine).
+
+    Pendant de `Dictee` pour le corpus Faustine. L'unité de citation est le
+    numéro de paragraphe. `num_debut`/`num_fin` délimitent la plage couverte
+    **dans la numérotation du PDF** : ils sont égaux pour un § isolé, et
+    diffèrent lorsque des § très courts ont été regroupés ou lorsque des
+    numéros absents de l'édition ont été absorbés.
+
+    La numérotation du PDF décroche de la numérotation de référence au-delà
+    d'un point de bascule (cf. `faustine_parser.numero_reference`) :
+    `num_ref_debut`/`num_ref_fin` portent les numéros **de référence**, et ce
+    sont eux, et eux seuls, qui servent à citer. `num_incertain` signale les
+    paragraphes de la zone où le point de bascule n'a pas pu être établi avec
+    certitude ; leur numéro s'affiche alors précédé d'un tilde.
+    """
+    num_debut: int
+    num_fin: int
+    cahier: Optional[str]
+    text: str
+    num_ref_debut: Optional[int] = None
+    num_ref_fin: Optional[int] = None
+    num_incertain: bool = False
+
+
+@dataclass
 class Segment:
+    """Un chunk indexé. `id` est aussi son index dans `segments` et dans `embs`.
+
+    `owner_index` désigne l'unité de citation dont provient le segment :
+    l'index dans `dictees` si source == SOURCE_LUISA, l'index dans
+    `paragraphes` si source == SOURCE_FAUSTINE.
+    """
     id: int
     dictee_index: int
     text: str
     tokens: List[str]
+    source: str = SOURCE_LUISA
+
+    @property
+    def owner_index(self) -> int:
+        return self.dictee_index
 
 # ============================================================
 #  PARTIE 2 — Motifs dynamiques GPT + Extraction PDF → Dictées → Segments
@@ -435,7 +482,8 @@ def build_segments(dictees: List[Dictee],
                     id=sid,
                     dictee_index=d_idx,
                     text=seg_text,
-                    tokens=tokens
+                    tokens=tokens,
+                    source=SOURCE_LUISA
                 )
             )
             sid += 1
@@ -510,12 +558,39 @@ def build_embeddings_for_segments(segments: List[Segment],
 #  Scoring hybride BM25 + embeddings + bonus keywords GPT
 # ------------------------------------------------------------
 
+def normalize_sources(sources: Optional[Sequence[str]]) -> Tuple[str, ...]:
+    """Ramène une demande de sources à un tuple valide, `SOURCES_CONNUES` par défaut.
+
+    Les valeurs inconnues sont ignorées ; une demande qui n'en contient aucune de
+    valide retombe sur l'ensemble du corpus plutôt que de ne rien renvoyer.
+    """
+    if not sources:
+        return SOURCES_CONNUES
+    retenues = tuple(s for s in SOURCES_CONNUES if s in set(sources))
+    return retenues or SOURCES_CONNUES
+
+
+def select_indices_by_source(segments: List[Segment],
+                             sources: Optional[Sequence[str]] = None
+                             ) -> np.ndarray:
+    """Indices des segments appartenant aux sources demandées, dans l'ordre."""
+    retenues = normalize_sources(sources)
+    if set(retenues) >= set(SOURCES_CONNUES):
+        return np.arange(len(segments))
+    return np.array(
+        [i for i, seg in enumerate(segments)
+         if getattr(seg, "source", SOURCE_LUISA) in retenues],
+        dtype=int,
+    )
+
+
 def score_segments_with_keywords(evangelium_text: str,
                                  keywords: List[str],
                                  segments: List[Segment],
                                  bm25: BM25Okapi,
                                  embs: np.ndarray,
-                                 top_k_segments: int = 200
+                                 top_k_segments: int = 200,
+                                 sources: Optional[Sequence[str]] = None
                                  ) -> List[Tuple[float, Segment]]:
     """
     Score chaque segment (BM25 + embeddings + bonus mots-clés GPT).
@@ -528,6 +603,14 @@ def score_segments_with_keywords(evangelium_text: str,
       - semantic_score = dot(emb, q_emb)
       - bonus = nombre de mots-clés dans le segment
       - final_score = 0.45*BM25 + 0.45*semantic + 0.10*bonus
+
+    `sources` restreint la recherche à un sous-ensemble du corpus (None = tout).
+    Le filtre s'applique **avant** la normalisation : les trois composantes sont
+    ramenées à [0, 1] sur les seuls segments retenus. Filtrer après coup
+    laisserait les scores d'une source être écrasés par les extrêmes de l'autre,
+    et la pondération 0.45/0.45/0.10 ne porterait plus sur des grandeurs
+    comparables. Lorsque toutes les sources sont actives, le résultat est
+    identique au calcul non filtré.
     """
 
     # --- 1) Construire la requête enrichie pour embeddings ---
@@ -563,49 +646,63 @@ def score_segments_with_keywords(evangelium_text: str,
             if overlap > 0:
                 bonus[seg.id] = overlap
 
-    # --- 5) Normalisation ---
-    lex_n = _norm(bm_scores)
-    sem_n = _norm(sem_scores)
-    bonus_n = _norm(bonus)
+    # --- 5) Restriction aux sources demandées ---
+    actifs = select_indices_by_source(segments, sources)
+    if actifs.size == 0:
+        print("[WARN] Aucun segment ne correspond aux sources demandées.")
+        return []
 
-    # --- 6) Pondérations ---
+    # --- 6) Normalisation (sur les seuls segments retenus) ---
+    lex_n = _norm(bm_scores[actifs])
+    sem_n = _norm(sem_scores[actifs])
+    bonus_n = _norm(bonus[actifs])
+
+    # --- 7) Pondérations ---
     w_lex   = 0.45
     w_sem   = 0.45
     w_bonus = 0.10
 
     final_score = w_lex * lex_n + w_sem * sem_n + w_bonus * bonus_n
 
-    # --- 7) Sélection des meilleurs segments ---
+    # --- 8) Sélection des meilleurs segments ---
     idx_sorted = np.argsort(final_score)[::-1]
     top_idx = idx_sorted[:top_k_segments]
 
-    print(f"[INFO] Top {top_k_segments} segments sélectionnés (avant regroupement dictées).")
+    print(f"[INFO] Top {top_k_segments} segments sélectionnés "
+          f"(parmi {actifs.size} segments actifs, avant regroupement).")
 
-    results = [(final_score[i], segments[i]) for i in top_idx]
-    return results
+    return [(final_score[i], segments[actifs[i]]) for i in top_idx]
 
 # ============================================================
 #  PARTIE 4 — Regroupement dictées & make_excerpt optimisée
 # ============================================================
 
-def group_segments_by_dictee(ranked_segments: List[Tuple[float, Segment]],
-                             dictees: List[Dictee],
-                             top_k_dicts_pre_rerank: int = 50
-                             ) -> List[Tuple[float, Dictee, Segment]]:
+def group_segments_by_unit(ranked_segments: List[Tuple[float, Segment]],
+                           dictees: List[Dictee],
+                           paragraphes: Optional[List["Paragraphe"]] = None,
+                           top_k_units_pre_rerank: int = 50
+                           ) -> List[Tuple[float, object, Segment]]:
     """
-    Regroupe les segments scorés par dictée :
-      - pour chaque dictée, conserve le segment au score maximal
-      - retourne jusqu'à top_k_dicts_pre_rerank dictées candidates
+    Regroupe les segments scorés par unité de citation :
+      - dictée pour le Livre du Ciel, paragraphe pour le Petit Journal
+      - pour chaque unité, conserve le segment au score maximal
+      - retourne jusqu'à top_k_units_pre_rerank unités candidates
 
-    Cette liste est ensuite soumise à GPT pour le reranking (50 → 5).
+    Cette liste est ensuite soumise à GPT pour le reranking.
+
+    Les deux corpus numérotent leurs unités indépendamment : la clé de
+    regroupement associe donc la source à l'indice, sans quoi la dictée 12 et le
+    paragraphe 12 seraient confondus.
     """
-    by_dict: Dict[int, List[Tuple[float, Segment]]] = {}
+    par_unite: Dict[Tuple[str, int], List[Tuple[float, Segment]]] = {}
 
     for score, seg in ranked_segments:
-        by_dict.setdefault(seg.dictee_index, []).append((float(score), seg))
+        source = getattr(seg, "source", SOURCE_LUISA)
+        par_unite.setdefault((source, seg.dictee_index), []).append(
+            (float(score), seg))
 
-    rows: List[Tuple[float, Dictee, Segment]] = []
-    for d_idx, hits in by_dict.items():
+    rows: List[Tuple[float, object, Segment]] = []
+    for (source, u_idx), hits in par_unite.items():
         hits.sort(key=lambda x: x[0], reverse=True)
         best_score, best_seg = hits[0]
         supporting_scores = [s for s, _ in hits[1:4]]
@@ -614,14 +711,35 @@ def group_segments_by_dictee(ranked_segments: List[Tuple[float, Segment]],
             support_bonus = 0.18 * sum(supporting_scores) / len(supporting_scores)
         density_bonus = min(len(hits), 5) * 0.01
         score = best_score + support_bonus + density_bonus
-        dictee = dictees[d_idx]
-        rows.append((score, dictee, best_seg))
+
+        if source == SOURCE_FAUSTINE:
+            if not paragraphes or u_idx >= len(paragraphes):
+                # Corpus Faustine absent de l'index chargé : on écarte plutôt que
+                # de citer une unité qu'on ne peut pas référencer.
+                continue
+            unite: object = paragraphes[u_idx]
+        else:
+            unite = dictees[u_idx]
+        rows.append((score, unite, best_seg))
 
     rows.sort(key=lambda x: x[0], reverse=True)
-    candidates = rows[:top_k_dicts_pre_rerank]
+    candidates = rows[:top_k_units_pre_rerank]
 
-    print(f"[INFO] Dictées candidates (pré-rerank GPT) : {len(candidates)}")
+    print(f"[INFO] Unités candidates (pré-rerank GPT) : {len(candidates)}")
     return candidates
+
+
+def group_segments_by_dictee(ranked_segments: List[Tuple[float, Segment]],
+                             dictees: List[Dictee],
+                             top_k_dicts_pre_rerank: int = 50
+                             ) -> List[Tuple[float, Dictee, Segment]]:
+    """Regroupement restreint au Livre du Ciel (voir `group_segments_by_unit`)."""
+    luisa = [(score, seg) for score, seg in ranked_segments
+             if getattr(seg, "source", SOURCE_LUISA) == SOURCE_LUISA]
+    return group_segments_by_unit(
+        luisa, dictees, paragraphes=None,
+        top_k_units_pre_rerank=top_k_dicts_pre_rerank,
+    )
 
 
 def make_excerpt(dictee: Dictee,
@@ -721,9 +839,303 @@ def make_excerpt(dictee: Dictee,
 
     return clean_text(excerpt)
 
+
+# ------------------------------------------------------------
+#  Citation du Petit Journal (corpus Faustine)
+# ------------------------------------------------------------
+
+#: Longueur maximale d'une citation du Petit Journal, en caractères.
+#: Un § n'est jamais reproduit intégralement au-delà de ce plafond — ni à
+#: l'écran, ni dans les prompts envoyés au modèle. Réglable sans redéploiement
+#: via la variable d'environnement `FAUSTINE_MAX_CHARS_CITATION`.
+MAX_CHARS_CITATION_FAUSTINE = int(
+    os.environ.get("FAUSTINE_MAX_CHARS_CITATION", "300"))
+
+# ------------------------------------------------------------
+#  Numérotation de référence
+# ------------------------------------------------------------
+#
+# Le PDF décroche d'une unité par rapport à la numérotation de référence :
+# passé un certain point, son § N correspond au § N+1 de référence. Des repères
+# vérifiés encadrent étroitement ce point.
+#
+#   Sans décalage : 300→300, 309→309 (Acte d'offrande),
+#                   310→310 (permission du confesseur)
+#   Avec +1       : 318→319 (adoration nocturne du 9 août 1934), 419→420,
+#                   474→475, 698→699, 1145→1146, 1540→1541, 1827→1828
+#
+# La bascule tombe donc entre les § 311 et 317 du PDF — précisément là où le
+# PDF n'imprime plus aucun numéro alors que le texte enchaîne onze entrées
+# distinctes (« Un jour qu j'étais sortie pour me confesser… », « Une fois
+# j'étais chez le peintre… », « Un après midi, je me rendis au jardin… »…) :
+# sept numéros disponibles pour onze unités de texte. C'est là que la
+# numérotation perd son compte. Déterminer laquelle de ces entrées porte
+# exactement le décrochage demanderait l'édition de référence ; la bascule est
+# donc placée au premier numéro possible, et seuls les § 311 à 317 — les seuls
+# dont le numéro de référence dépende encore de ce choix — sont signalés comme
+# incertains. Au-delà de 317, le décalage vaut +1 quel que soit le point exact.
+
+#: Premier numéro du PDF dont l'équivalent de référence vaut N + 1.
+BASCULE_NUM_REF = 311
+
+#: Zone où le point de bascule n'est pas établi avec certitude (bornes du PDF).
+ZONE_NUM_INCERTAIN = (311, 317)
+
+
+def numero_reference(num_pdf: int) -> int:
+    """Numéro de référence correspondant à un numéro imprimé dans le PDF."""
+    return num_pdf + 1 if num_pdf >= BASCULE_NUM_REF else num_pdf
+
+
+def numero_incertain(num_pdf: int) -> bool:
+    """Vrai si le numéro de référence de ce § dépend du point de bascule exact."""
+    debut, fin = ZONE_NUM_INCERTAIN
+    return debut <= num_pdf <= fin
+
+#: Mention de source obligatoire accompagnant toute citation du Petit Journal.
+#: Employée partout où la source est affichée — écran, prompts, téléchargement.
+SOURCE_FAUSTINE_LABEL = "Petit Journal"
+
+_FINS_DE_PHRASE = (".", "!", "?", "…")
+
+
+def plage_faustine(para: Paragraphe) -> str:
+    """« § 742 », ou « §§ 280–295 » quand le paragraphe couvre plusieurs numéros.
+
+    Les numéros cités sont ceux de la **numérotation de référence**, jamais ceux
+    du PDF. Un numéro dont la valeur dépend du point de bascule non déterminé
+    est précédé d'un tilde : « § ~312 ». Le tilde se pose borne par borne : une
+    plage peut avoir un début certain et une fin qui ne l'est pas.
+    """
+    debut = para.num_ref_debut
+    fin = para.num_ref_fin
+    if debut is None or fin is None:
+        raise ValueError(
+            f"Numérotation de référence absente du paragraphe {para.num_debut}. "
+            "Lancez `python ingest_faustine.py --refaire-metadonnees`."
+        )
+
+    def marquer(num_ref: int, num_pdf: int) -> str:
+        return f"~{num_ref}" if numero_incertain(num_pdf) else str(num_ref)
+
+    if debut == fin:
+        return f"§ {marquer(debut, para.num_debut)}"
+    return (f"§§ {marquer(debut, para.num_debut)}"
+            f"–{marquer(fin, para.num_fin)}")
+
+
+def reference_faustine(para: Paragraphe) -> str:
+    """Référence complète, mention de source comprise. Jamais omise à l'affichage."""
+    return f"{SOURCE_FAUSTINE_LABEL}, {plage_faustine(para)}"
+
+
+def _fin_de_phrase_avant(texte: str, limite: int) -> int:
+    """Position juste après la dernière fin de phrase située avant `limite`."""
+    coupe = max(texte.rfind(p, 0, limite) for p in _FINS_DE_PHRASE)
+    return coupe + 1 if coupe > 0 else 0
+
+
+def extrait_cite_faustine(para: Paragraphe,
+                          seg: Optional[Segment] = None,
+                          max_chars: Optional[int] = None) -> str:
+    """Citation courte du paragraphe, centrée sur le segment retenu.
+
+    Pendant de `make_excerpt` pour le corpus Faustine, à une différence près :
+    le plafond est une garantie dure, jamais un objectif. Le résultat ne dépasse
+    en aucun cas `max_chars`, quitte à s'arrêter en cours de phrase sur des
+    points de suspension. On préfère toutefois une fin de phrase, et l'on part
+    du début de la phrase qui ouvre le segment plutôt que du milieu d'un membre.
+    """
+    if max_chars is None:
+        max_chars = MAX_CHARS_CITATION_FAUSTINE
+
+    plein = para.text.strip()
+    if len(plein) <= max_chars:
+        return plein
+
+    debut = 0
+    if seg is not None:
+        sonde = " ".join(seg.text.split()[:8])
+        position = plein.find(sonde) if len(sonde) >= 20 else -1
+        if position > 0:
+            debut = _fin_de_phrase_avant(plein, position)
+
+    fenetre = plein[debut:debut + max_chars]
+    if len(plein) - debut <= max_chars:
+        return fenetre.strip()
+
+    coupe = max(fenetre.rfind(p) for p in _FINS_DE_PHRASE)
+    if coupe >= max_chars // 3:
+        return fenetre[:coupe + 1].strip()
+
+    # Aucune fin de phrase exploitable : on tronque au dernier mot entier.
+    tronque = fenetre[:max_chars - 1]
+    espace = tronque.rfind(" ")
+    if espace > 0:
+        tronque = tronque[:espace]
+    return tronque.strip() + "…"
+
+
+# ------------------------------------------------------------
+#  Description unifiée d'un passage retenu
+# ------------------------------------------------------------
+
+#: (auteur, œuvre) par source, tels qu'ils doivent apparaître dans toute citation.
+IDENTITE_SOURCE = {
+    SOURCE_LUISA: ("Luisa Piccarreta", "Livre du Ciel"),
+    SOURCE_FAUSTINE: ("sainte Faustine", SOURCE_FAUSTINE_LABEL),
+}
+
+
+def decrire_passage(unite, seg: Segment) -> Dict:
+    """Passage prêt à citer : auteur, œuvre, référence et extrait.
+
+    Point de passage unique entre les deux corpus : c'est ici que se décide
+    l'extrait affiché — fenêtre large pour le Livre du Ciel, citation plafonnée
+    pour le Petit Journal — et la façon de le référencer. Les prompts comme
+    l'interface consomment ce dictionnaire, jamais les dataclasses directement.
+    """
+    source = getattr(seg, "source", SOURCE_LUISA)
+    auteur, oeuvre = IDENTITE_SOURCE[source]
+
+    if source == SOURCE_FAUSTINE:
+        return {
+            "source": source,
+            "auteur": auteur,
+            "oeuvre": oeuvre,
+            "localisation": plage_faustine(unite),
+            "reference": reference_faustine(unite),
+            "extrait": extrait_cite_faustine(unite, seg),
+        }
+
+    localisation = f"Tome {unite.tome} — {unite.date}"
+    return {
+        "source": source,
+        "auteur": auteur,
+        "oeuvre": oeuvre,
+        "localisation": localisation,
+        "reference": localisation,
+        "extrait": make_excerpt(unite, seg),
+        # Conservés tels quels : le cache et le téléchargement s'y appuient.
+        "tome": unite.tome,
+        "date": unite.date,
+    }
+
+
+def _entete_passage(description: Dict, avec_attribution: bool) -> str:
+    """En-tête d'un extrait dans un prompt.
+
+    L'attribution explicite n'est ajoutée que lorsque les deux corpus sont en
+    présence : en mono-source, le prompt reste identique à ce qu'il était.
+
+    Sous attribution, l'œuvre est nommée une fois pour toutes en tête ; on
+    n'emploie donc que la localisation, sans quoi « Petit Journal » figurerait
+    deux fois de suite, sa référence complète le nommant déjà.
+    """
+    if not avec_attribution:
+        return description["reference"]
+    return (f"{description['auteur']} — {description['oeuvre']}, "
+            f"{description['localisation']}")
+
+
 # ============================================================
 #  PARTIE 5 — Reranking GPT (50 → 5) + Synthèse courte
 # ============================================================
+
+_RERANK_SYSTEM_PROMPT_FAUSTINE = """Tu es un théologien catholique, spécialiste de la spiritualité de la Miséricorde Divine telle qu'elle est consignée dans le « Petit Journal » de sainte Faustine Kowalska. Ton rôle est de sélectionner, parmi une liste d'extraits du Petit Journal proposés par leurs identifiants (ID), ceux qui éclairent le mieux une péricope évangélique fournie par l'utilisateur.
+
+CONTEXTE DE LA MISSION
+
+Le « Petit Journal » est le carnet spirituel tenu par sainte Faustine Kowalska (1905–1938), religieuse polonaise. Il alterne trois registres qu'il faut savoir distinguer : les paroles de Jésus rapportées au discours direct, les prières et élévations de Faustine elle-même, et la simple notation d'événements de sa vie conventuelle. Sa doctrine est celle de la Miséricorde Divine : confiance sans réserve, recours à la miséricorde pour les pécheurs, Heure de la Miséricorde, fête de la Miséricorde, abandon à la volonté de Dieu, offrande de la souffrance pour la conversion des âmes.
+
+Chaque extrait est référencé par son numéro de paragraphe. Le texte est cité de façon volontairement brève : juge sur ce qui t'est donné, sans supposer ce qui l'entoure.
+
+CRITÈRES DE SÉLECTION (par ordre décroissant d'importance)
+
+1. Adéquation thématique forte.
+   L'extrait reprend, approfondit ou prolonge le motif central de la péricope (geste, parole, image, personnage, lieu). Le lien doit être net : explicite, ou très étroitement implicite. Les liens artificiels ou tenant à un simple mot de surface sont à exclure.
+
+2. Lumière propre de la Miséricorde Divine.
+   L'extrait apporte un éclairage qui appartient au registre du Petit Journal : confiance, miséricorde envers les pécheurs, abandon, réparation, intimité avec Jésus, souffrance offerte. Il ne se borne pas à une moralisation générique.
+
+3. Concordance avec les thèmes et mots-clés signalés par l'utilisateur.
+   Ces indications orientent fortement la sélection sans s'y substituer mécaniquement : un extrait à thème adjacent mais profondément aligné reste éligible.
+
+4. Complémentarité des extraits retenus.
+   Privilégie des angles distincts — parole de Jésus, prière de Faustine, expérience vécue — plutôt que deux extraits développant la même idée.
+
+5. Ancrage direct sur le cœur de la péricope.
+   Au moins un extrait doit éclairer le cœur de la péricope, et non un détail périphérique.
+
+À PROSCRIRE
+
+- Choisir un extrait dont le lien avec la péricope est artificiel ou forcé.
+- Retenir deux extraits qui disent essentiellement la même chose.
+- Confondre une parole attribuée à Jésus et une réflexion personnelle de Faustine.
+- S'éloigner du sens littéral et spirituel de la péricope au profit d'une révélation privée.
+- Surinterpréter un extrait au-delà de ce qu'il dit réellement.
+
+FORMAT DE SORTIE OBLIGATOIRE
+
+Tu retournes EXCLUSIVEMENT un objet JSON strict, sans aucun texte autour, sans markdown, sans commentaire, de la forme :
+
+{"ids": [id1, id2, ...]}
+
+où chaque id est un entier correspondant à l'un des IDs fournis. La liste contient exactement le nombre d'extraits demandé (ou moins, uniquement si la liste candidate est plus courte). Le JSON doit être directement parseable par json.loads() en Python.
+
+POSTURE DE TRAVAIL
+
+Tu travailles avec sobriété, fidélité au texte biblique et respect strict de la doctrine catholique. Tu préfères toujours le sens fort et juste au sens spectaculaire. Tu te tiens à distance du pathos pieux comme de l'analyse froide."""
+
+
+_RERANK_SYSTEM_PROMPT_MIXTE = """Tu es un théologien catholique, à la fois spécialiste de la Divine Volonté (Fiat) enseignée à Luisa Piccarreta dans le « Livre du Ciel » et de la Miséricorde Divine consignée par sainte Faustine Kowalska dans le « Petit Journal ». Ton rôle est de sélectionner, parmi une liste d'extraits proposés par leurs identifiants (ID), ceux qui éclairent le mieux une péricope évangélique fournie par l'utilisateur.
+
+CONTEXTE DE LA MISSION
+
+Les extraits proviennent de DEUX œuvres distinctes, de deux mystiques distinctes, et chaque extrait porte en en-tête l'auteur et l'œuvre dont il est issu.
+
+- « Livre du Ciel » — Luisa Piccarreta (1865–1947), mystique italienne. Théologie de la Divine Volonté : vivre dans le Fiat, agir en union avec Jésus dans la Volonté divine, prolonger l'œuvre de la Rédemption, faire advenir le Règne du Fiat. Référencé par tome et date de dictée.
+- « Petit Journal » — sainte Faustine Kowalska (1905–1938), religieuse polonaise. Spiritualité de la Miséricorde Divine : confiance sans réserve, recours à la miséricorde pour les pécheurs, abandon, offrande de la souffrance. Référencé par numéro de paragraphe, et cité de façon volontairement brève.
+
+RÈGLE ABSOLUE : NE JAMAIS FONDRE LES DEUX VOIX
+
+Ces deux corpus sont indépendants l'un de l'autre. Faustine n'a pas connu l'enseignement de Luisa, et réciproquement. Leur vocabulaire propre ne se transfère pas : « Fiat », « actes dans la Divine Volonté », « Règne du Fiat » appartiennent à Luisa seule ; « Heure de la Miséricorde », « fête de la Miséricorde », « Jésus, j'ai confiance en Vous » appartiennent à Faustine seule. Tu ne construis jamais une synthèse qui mêlerait les deux doctrines en une seule pensée, et tu n'attribues jamais à l'une ce que dit l'autre.
+
+CRITÈRES DE SÉLECTION (par ordre décroissant d'importance)
+
+1. Adéquation thématique forte.
+   L'extrait reprend, approfondit ou prolonge le motif central de la péricope. Le lien doit être net. Les liens artificiels ou tenant à un mot de surface sont à exclure.
+
+2. Lumière propre de l'œuvre dont l'extrait provient.
+   Chaque extrait doit être jugé selon le registre de SON auteur : la Divine Volonté pour Luisa, la Miséricorde Divine pour Faustine. Un extrait n'est pas meilleur parce qu'il rappellerait l'autre corpus.
+
+3. Concordance avec les thèmes et mots-clés signalés par l'utilisateur.
+
+4. Complémentarité des extraits retenus.
+   Lorsque plusieurs extraits sont à choisir, la diversité d'angles prime. Si les deux corpus offrent chacun un extrait fort sur la péricope, les retenir tous deux est souhaitable — mais uniquement s'ils sont l'un et l'autre pertinents. Ne retiens jamais un extrait faible dans le seul but de représenter son corpus.
+
+5. Ancrage direct sur le cœur de la péricope.
+
+À PROSCRIRE
+
+- Attribuer à l'une des deux mystiques le vocabulaire ou la doctrine de l'autre.
+- Choisir un extrait dont le lien avec la péricope est artificiel ou forcé.
+- Retenir deux extraits qui disent essentiellement la même chose.
+- Équilibrer artificiellement les deux sources au détriment de la pertinence.
+- Surinterpréter un extrait au-delà de ce qu'il dit réellement.
+
+FORMAT DE SORTIE OBLIGATOIRE
+
+Tu retournes EXCLUSIVEMENT un objet JSON strict, sans aucun texte autour, sans markdown, sans commentaire, de la forme :
+
+{"ids": [id1, id2, ...]}
+
+où chaque id est un entier correspondant à l'un des IDs fournis. La liste contient exactement le nombre d'extraits demandé (ou moins, uniquement si la liste candidate est plus courte). Le JSON doit être directement parseable par json.loads() en Python.
+
+POSTURE DE TRAVAIL
+
+Tu travailles avec sobriété, fidélité au texte biblique et respect strict de la doctrine catholique. Tu respectes la singularité de chaque mystique. Tu préfères toujours le sens fort et juste au sens spectaculaire."""
+
 
 _RERANK_SYSTEM_PROMPT = """Tu es un théologien catholique, spécialiste de la Divine Volonté (Fiat) telle qu'expliquée dans le « Livre du Ciel » de Luisa Piccarreta. Ton rôle est de sélectionner, parmi une liste d'extraits du Livre du Ciel proposés par leurs identifiants (ID), ceux qui éclairent le mieux une péricope évangélique fournie par l'utilisateur.
 
@@ -773,17 +1185,53 @@ POSTURE DE TRAVAIL
 Tu travailles avec sobriété, fidélité au texte biblique et respect strict de la doctrine catholique. Tu fais confiance à la richesse propre du Livre du Ciel sans la surinterpréter. Tu privilégies toujours le sens fort et juste sur le sens spectaculaire ou surprenant. En cas d'hésitation entre deux extraits comparables, tu préfères celui dont le langage est le plus accessible et l'enracinement biblique le plus explicite. Tu te tiens à distance du pathos pieux comme de l'analyse froide : ton discernement est celui d'un exégète à la fois rigoureux et contemplatif."""
 
 
+#: System prompt de reranking par jeu de sources en présence.
+_RERANK_SYSTEM_PROMPTS = {
+    (SOURCE_LUISA,): _RERANK_SYSTEM_PROMPT,
+    (SOURCE_FAUSTINE,): _RERANK_SYSTEM_PROMPT_FAUSTINE,
+    (SOURCE_LUISA, SOURCE_FAUSTINE): _RERANK_SYSTEM_PROMPT_MIXTE,
+}
+
+#: Intitulé du bloc d'extraits candidats, par jeu de sources.
+_INTITULE_EXTRAITS = {
+    (SOURCE_LUISA,): "EXTRAITS CANDIDATS DU LIVRE DU CIEL "
+                     "(chaque extrait porte un ID, un tome et une date)",
+    (SOURCE_FAUSTINE,): "EXTRAITS CANDIDATS DU PETIT JOURNAL "
+                        "(chaque extrait porte un ID et un numéro de paragraphe)",
+    (SOURCE_LUISA, SOURCE_FAUSTINE): "EXTRAITS CANDIDATS "
+                                     "(chaque extrait porte un ID, son auteur, "
+                                     "son œuvre et sa référence)",
+}
+
+
+def sources_presentes(candidats: Sequence[Tuple[float, object, Segment]]
+                      ) -> Tuple[str, ...]:
+    """Sources effectivement représentées parmi les candidats, dans l'ordre canonique.
+
+    On se fonde sur ce qui est réellement soumis au modèle, non sur ce que
+    l'utilisateur a demandé : une recherche bi-source qui ne remonte que du
+    Luisa doit rester un prompt mono-source.
+    """
+    presentes = {getattr(seg, "source", SOURCE_LUISA) for _s, _u, seg in candidats}
+    retenues = tuple(s for s in SOURCES_CONNUES if s in presentes)
+    return retenues or (SOURCE_LUISA,)
+
+
 def rerank_with_gpt(evangelium_text: str,
-                    candidate_dicts: List[Tuple[float, Dictee, Segment]],
+                    candidate_dicts: List[Tuple[float, object, Segment]],
                     themes: List[str],
                     keywords: List[str],
                     model_name: str = "gpt-4.1",
                     top_k_final: int = 5) -> List[int]:
     """
-    Demande à GPT de choisir les top_k_final dictées les plus pertinentes
-    parmi la liste candidate_dicts (jusqu'à 50 dictées).
+    Demande à GPT de choisir les top_k_final unités les plus pertinentes
+    parmi la liste candidate_dicts (jusqu'à 50 unités).
 
     Retourne une liste d'indices (0-based) dans candidate_dicts.
+
+    Le system prompt est choisi selon les corpus effectivement présents parmi
+    les candidats. Quand les deux le sont, chaque extrait est explicitement
+    attribué à son auteur et le prompt interdit de fondre les deux voix.
 
     Optimisation : les consignes stables sont placées dans le system message
     (préfixe identique entre requêtes → bénéficie du prompt caching OpenAI
@@ -791,12 +1239,14 @@ def rerank_with_gpt(evangelium_text: str,
     """
 
     # 1) Préparer les extraits pour GPT
+    sources = sources_presentes(candidate_dicts)
+    attribuer = len(sources) > 1
+
     sections = []
-    for i, (score, dictee, seg) in enumerate(candidate_dicts):
-        excerpt = make_excerpt(dictee, seg)
-        sections.append(
-            f"ID {i+1} — Tome {dictee.tome} — {dictee.date}\n{excerpt}"
-        )
+    for i, (score, unite, seg) in enumerate(candidate_dicts):
+        description = decrire_passage(unite, seg)
+        entete = _entete_passage(description, attribuer)
+        sections.append(f"ID {i+1} — {entete}\n{description['extrait']}")
     joined = "\n\n---\n\n".join(sections)
 
     # 2) Contexte des thèmes / mots-clés dynamiques
@@ -813,7 +1263,7 @@ def rerank_with_gpt(evangelium_text: str,
 \"\"\"{evangelium_text}\"\"\"
 
 {theme_info}{keyword_info}
-EXTRAITS CANDIDATS DU LIVRE DU CIEL (chaque extrait porte un ID, un tome et une date) :
+{_INTITULE_EXTRAITS[sources]} :
 
 {joined}
 
@@ -823,7 +1273,7 @@ CONSIGNE : Sélectionne exactement {top_k_final} extraits parmi les candidats ci
         resp = client.chat.completions.create(
             model=model_name,
             messages=[
-                {"role": "system", "content": _RERANK_SYSTEM_PROMPT},
+                {"role": "system", "content": _RERANK_SYSTEM_PROMPTS[sources]},
                 {"role": "user", "content": user_prompt}
             ],
             temperature=0.2  # pour un comportement majoritairement stable avec légère respiration
@@ -931,6 +1381,122 @@ Extraits du Livre du Ciel :
         return f"Synthèse indisponible : {e}"
     
 
+_EXPLAIN_SYSTEM_PROMPT_FAUSTINE = """Tu es un théologien catholique, exégète précis et synthétique, spécialiste de la spiritualité de la Miséricorde Divine telle qu'elle est consignée dans le « Petit Journal » de sainte Faustine Kowalska. Ton rôle est de produire, pour CHAQUE extrait du Petit Journal qui te sera soumis par l'utilisateur, une courte explication (2 à 3 phrases) qui explicite en quoi ce passage éclaire la péricope évangélique fournie.
+
+CONTEXTE DE LA MISSION
+
+Le « Petit Journal » est le carnet spirituel de sainte Faustine Kowalska (1905–1938). Il alterne trois registres : les paroles de Jésus rapportées au discours direct, les prières et élévations de Faustine, et la notation d'événements de sa vie. Distingue-les toujours : ne prête pas à Jésus ce que Faustine dit d'elle-même, ni l'inverse.
+
+Les extraits te sont soumis sous forme de citations brèves, référencées par numéro de paragraphe. Ton commentaire doit s'appuyer sur ce qui est effectivement écrit dans l'extrait, jamais sur ce que tu supposes de son contexte.
+
+CONTRAINTES DE STYLE ET DE CONTENU
+
+1. Aucune formule générique d'introduction.
+   Sont interdites les amorces du type « Cet extrait du Petit Journal éclaire… », « Ce passage nous montre que… », « Dans cet extrait, sainte Faustine explique… ». Commence directement par le contenu théologique : « Ici Jésus révèle à Faustine que… », « La confiance dont il est question ici… », « Le geste évoqué dans la péricope trouve son écho dans… ».
+
+2. Aucune paraphrase.
+   Le lecteur a déjà lu l'extrait : il attend une mise en lumière, pas un résumé.
+
+3. Appui concret obligatoire.
+   Chaque explication doit se référer explicitement à un ou deux éléments réellement présents dans l'extrait : un mot, une image, une parole de Jésus, une demande précise. Si tu ne peux en nommer aucun, ton explication est trop générale : reprends-la.
+
+4. Une seule idée théologique centrale par explication.
+
+5. Lien explicite avec la péricope, formulé clairement.
+
+6. Longueur : 2 à 3 phrases, pas plus. Style sobre, précis, contemplatif.
+
+7. Doctrine de la Miséricorde Divine.
+   Mobilise les notions propres au Petit Journal (confiance, miséricorde envers les pécheurs, abandon, réparation, souffrance offerte, Heure de la Miséricorde) seulement lorsque l'extrait les évoque réellement.
+
+À PROSCRIRE ABSOLUMENT
+
+- Les formules abstraites non appuyées sur l'extrait.
+- Les paraphrases déguisées en explication.
+- L'introduction d'idées absentes de l'extrait, ou de son contexte non cité.
+- La confusion entre une parole de Jésus et une réflexion de Faustine.
+- Le vocabulaire de la Divine Volonté de Luisa Piccarreta (Fiat, actes dans la Divine Volonté, Règne du Fiat) : il est étranger à ce corpus.
+- Le pathos pieux et les exclamations dévotionnelles.
+- Les répétitions d'une explication à l'autre.
+
+FORMAT DE SORTIE OBLIGATOIRE
+
+Tu retournes STRICTEMENT un objet JSON, sans aucun texte autour, sans markdown, sans commentaire, de la forme :
+
+{
+  "explanations": [
+    "explication du passage 1",
+    "explication du passage 2"
+  ]
+}
+
+La liste "explanations" contient exactement autant d'éléments que d'extraits fournis, dans le même ordre. Le JSON doit être directement parseable par json.loads() en Python.
+
+POSTURE DE TRAVAIL
+
+Tu travailles avec sobriété, précision et fidélité au texte. Tu préfères une explication courte mais juste à une explication ample mais flottante. Chaque mot doit porter."""
+
+
+_EXPLAIN_SYSTEM_PROMPT_MIXTE = """Tu es un théologien catholique, exégète précis et synthétique, connaissant également la Divine Volonté (Fiat) enseignée à Luisa Piccarreta dans le « Livre du Ciel » et la Miséricorde Divine consignée par sainte Faustine Kowalska dans le « Petit Journal ». Ton rôle est de produire, pour CHAQUE extrait qui te sera soumis par l'utilisateur, une courte explication (2 à 3 phrases) qui explicite en quoi ce passage éclaire la péricope évangélique fournie.
+
+CONTEXTE DE LA MISSION
+
+Les extraits proviennent de DEUX œuvres distinctes, de deux mystiques distinctes. Chaque passage porte en en-tête son auteur, son œuvre et sa référence.
+
+- « Livre du Ciel » — Luisa Piccarreta (1865–1947). Doctrine de la Divine Volonté : vivre dans le Fiat, actes accomplis dans la Volonté divine, fusion, réparation, Règne du Fiat, soleil de la Volonté divine. Référencé par tome et date.
+- « Petit Journal » — sainte Faustine Kowalska (1905–1938). Spiritualité de la Miséricorde Divine : confiance, miséricorde envers les pécheurs, abandon, souffrance offerte, Heure de la Miséricorde. Référencé par numéro de paragraphe, et cité brièvement.
+
+RÈGLE ABSOLUE : NE JAMAIS FONDRE LES DEUX VOIX
+
+Chaque explication porte sur UN extrait et sur lui seul, et parle la langue de SON auteur.
+
+- Tu nommes explicitement l'auteur dans l'explication, ou tu emploies une formulation qui ne laisse aucun doute sur celui dont il s'agit.
+- Tu n'emploies jamais le vocabulaire de Luisa (Fiat, actes dans la Divine Volonté, Règne du Fiat) pour commenter un extrait de Faustine, ni celui de Faustine (Heure de la Miséricorde, fête de la Miséricorde, « Jésus, j'ai confiance en Vous ») pour commenter un extrait de Luisa.
+- Tu ne rapproches pas les deux mystiques l'une de l'autre, tu ne les compares pas, tu ne suggères pas qu'elles enseigneraient la même chose sous des mots différents. Chacune éclaire la péricope depuis son propre lieu.
+- Tu n'attribues jamais à l'une une parole, une image ou une doctrine de l'autre.
+
+CONTRAINTES DE STYLE ET DE CONTENU
+
+1. Aucune formule générique d'introduction. Commence directement par le contenu théologique.
+
+2. Aucune paraphrase de l'extrait : le lecteur l'a déjà lu.
+
+3. Appui concret obligatoire : un ou deux éléments réellement présents dans l'extrait (un mot, une image, un geste, une parole rapportée).
+
+4. Une seule idée théologique centrale par explication.
+
+5. Lien explicite avec la péricope, formulé clairement.
+
+6. Longueur : 2 à 3 phrases, pas plus. Style sobre, précis, contemplatif.
+
+À PROSCRIRE ABSOLUMENT
+
+- Mêler les deux doctrines dans une même explication.
+- Attribuer à une mystique le vocabulaire ou l'enseignement de l'autre.
+- Les formules abstraites non appuyées sur l'extrait.
+- Les paraphrases déguisées en explication.
+- L'introduction d'idées absentes de l'extrait, ou de son contexte non cité.
+- Le pathos pieux et les exclamations dévotionnelles.
+- Les répétitions d'une explication à l'autre.
+
+FORMAT DE SORTIE OBLIGATOIRE
+
+Tu retournes STRICTEMENT un objet JSON, sans aucun texte autour, sans markdown, sans commentaire, de la forme :
+
+{
+  "explanations": [
+    "explication du passage 1",
+    "explication du passage 2"
+  ]
+}
+
+La liste "explanations" contient exactement autant d'éléments que d'extraits fournis, dans le même ordre. Le JSON doit être directement parseable par json.loads() en Python.
+
+POSTURE DE TRAVAIL
+
+Tu travailles avec sobriété, précision et fidélité au texte. Tu respectes la singularité de chaque mystique et ne cherches jamais à les harmoniser. Chaque mot doit porter."""
+
+
 _EXPLAIN_SYSTEM_PROMPT = """Tu es un théologien catholique, exégète précis et synthétique, spécialiste de la Divine Volonté (Fiat) telle qu'enseignée à Luisa Piccarreta dans le « Livre du Ciel ». Ton rôle est de produire, pour CHAQUE extrait du Livre du Ciel qui te sera soumis par l'utilisateur, une courte explication (2 à 3 phrases) qui explicite en quoi ce passage éclaire la péricope évangélique fournie, à la lumière de la doctrine de la Divine Volonté.
 
 CONTEXTE DE LA MISSION
@@ -1004,15 +1570,37 @@ POSTURE DE TRAVAIL
 Tu travailles avec sobriété, précision et fidélité au texte. Tu fais confiance à la richesse propre du Livre du Ciel sans la surinterpréter. Tu préfères une explication courte mais juste à une explication ample mais flottante. Chaque mot doit porter. Ton style est celui d'un exégète à la fois rigoureux et contemplatif, qui sert le texte sans s'y substituer."""
 
 
+#: System prompt d'explication par jeu de sources en présence.
+_EXPLAIN_SYSTEM_PROMPTS = {
+    (SOURCE_LUISA,): _EXPLAIN_SYSTEM_PROMPT,
+    (SOURCE_FAUSTINE,): _EXPLAIN_SYSTEM_PROMPT_FAUSTINE,
+    (SOURCE_LUISA, SOURCE_FAUSTINE): _EXPLAIN_SYSTEM_PROMPT_MIXTE,
+}
+
+#: Intitulé du bloc d'extraits soumis à explication, par jeu de sources.
+_INTITULE_EXPLICATION = {
+    (SOURCE_LUISA,): "EXTRAITS DU LIVRE DU CIEL",
+    (SOURCE_FAUSTINE,): "EXTRAITS DU PETIT JOURNAL",
+    (SOURCE_LUISA, SOURCE_FAUSTINE): "EXTRAITS À ÉCLAIRER "
+                                     "(chacun porte son auteur et sa référence)",
+}
+
+
 def explain_passage_matches(evangelium_text: str,
                             passages: List[str],
-                            model_name: str = "gpt-4.1") -> List[str]:
+                            model_name: str = "gpt-4.1",
+                            descriptions: Optional[Sequence[Dict]] = None
+                            ) -> List[str]:
     """
-    Pour chaque extrait retenu du Livre du Ciel, produit une courte explication
-    (2–3 phrases) qui explicite en quoi ce passage éclaire la péricope évangélique
-    selon la théologie de la Divine Volonté.
+    Pour chaque extrait retenu, produit une courte explication (2–3 phrases)
+    qui explicite en quoi ce passage éclaire la péricope évangélique.
 
     Retourne une liste de textes (une explication par passage), dans le même ordre.
+
+    `descriptions` (issues de `decrire_passage`, dans le même ordre que
+    `passages`) permet d'identifier les corpus en présence et d'attribuer chaque
+    extrait à son auteur. Sans elles, le comportement est celui d'origine :
+    corpus Luisa seul, prompt inchangé.
 
     IMPORTANT :
     - Cette fonction n'influence PAS la sélection des passages (elle est appelée
@@ -1026,17 +1614,28 @@ def explain_passage_matches(evangelium_text: str,
     if client is None:
         return [""] * len(passages)
 
+    if descriptions:
+        presentes = {d.get("source", SOURCE_LUISA) for d in descriptions}
+        sources = tuple(s for s in SOURCES_CONNUES if s in presentes) or (SOURCE_LUISA,)
+    else:
+        sources = (SOURCE_LUISA,)
+    attribuer = len(sources) > 1
+
     # On construit un bloc de passages numérotés
     blocks = []
     for i, p in enumerate(passages, start=1):
-        blocks.append(f"Passage {i} :\n{p}\n")
+        if attribuer:
+            entete = _entete_passage(descriptions[i - 1], True)
+            blocks.append(f"Passage {i} — {entete} :\n{p}\n")
+        else:
+            blocks.append(f"Passage {i} :\n{p}\n")
     joined_passages = "\n\n".join(blocks)
 
     user_prompt = f"""PÉRICOPE ÉVANGÉLIQUE :
 
 \"\"\"{evangelium_text}\"\"\"
 
-EXTRAITS DU LIVRE DU CIEL :
+{_INTITULE_EXPLICATION[sources]} :
 
 {joined_passages}
 
@@ -1046,7 +1645,7 @@ CONSIGNE : Pour chaque Passage ci-dessus, produis une explication de 2 à 3 phra
         resp = client.chat.completions.create(
             model=model_name,
             messages=[
-                {"role": "system", "content": _EXPLAIN_SYSTEM_PROMPT},
+                {"role": "system", "content": _EXPLAIN_SYSTEM_PROMPTS[sources]},
                 {"role": "user", "content": user_prompt}
             ],
             temperature=0.4
@@ -1069,6 +1668,24 @@ CONSIGNE : Pour chaque Passage ci-dessus, produis une explication de 2 à 3 phra
 # ============================================================
 #  PARTIE 6 — Construction/Chargement de l'index + main() / CLI
 # ============================================================
+
+
+def backfill_segment_sources(segments: List[Segment]) -> None:
+    """Renseigne `source` sur les segments issus d'un pickle antérieur au champ.
+
+    `pickle` restaure les dataclasses en réinjectant `__dict__` sans passer par
+    `__init__` : les valeurs par défaut ne s'appliquent donc pas aux objets
+    sérialisés avant l'ajout du champ. Ces segments sont, par construction,
+    ceux du Livre du Ciel.
+    """
+    manquants = 0
+    for seg in segments:
+        if not hasattr(seg, "source"):
+            seg.source = SOURCE_LUISA
+            manquants += 1
+    if manquants:
+        print(f"[INFO] {manquants} segment(s) sans champ `source` "
+              f"rattaché(s) à « {SOURCE_LUISA} ».")
 
 
 def build_or_load_index(pdf_path: str,
@@ -1100,6 +1717,7 @@ def build_or_load_index(pdf_path: str,
         with open(bm25_path, "rb") as f:
             bm25 = pickle.load(f)
         embs = np.load(embs_path).astype(np.float32)
+        backfill_segment_sources(segments)
         return dictees, segments, bm25, embs
 
     # Sinon, on reconstruit tout

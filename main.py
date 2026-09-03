@@ -51,26 +51,40 @@ RL_LOGIN_PER_MIN = int(os.environ.get("RL_LOGIN_PER_MIN", "10"))               #
 # ============================================================
 
 import aelf_client
+import faustine_parser
 from ldc_proZ import (
+    SOURCE_FAUSTINE,
+    SOURCE_LUISA,
     build_or_load_index,
+    decrire_passage,
     detect_dynamic_motifs_gpt,
-    score_segments_with_keywords,
-    group_segments_by_dictee,
-    rerank_with_gpt,
-    make_excerpt,
-    explain_passage_matches,
     evangile_hash,
+    explain_passage_matches,
+    group_segments_by_unit,
+    normalize_sources,
+    rerank_with_gpt,
+    score_segments_with_keywords,
 )
 
 # ============================================================
 # Cache des évangiles déjà analysés
 # ============================================================
 
-def _cache_path(text: str) -> Path:
-    return CACHE_EVANGILES_DIR / f"{evangile_hash(text)}.json"
+def _cache_path(text: str, sources: tuple) -> Path:
+    """Chemin du cache pour un texte ET un jeu de sources.
 
-def _load_cached_passages(text: str):
-    path = _cache_path(text)
+    Les résultats dépendent des corpus interrogés : servir une analyse « Luisa
+    seule » à une demande « les deux » afficherait un éclairage tronqué. Le
+    Livre du Ciel seul conserve la clé historique, ce qui garde utilisables les
+    analyses déjà en cache.
+    """
+    nom = evangile_hash(text)
+    if tuple(sources) != (SOURCE_LUISA,):
+        nom += "__" + "-".join(sources)
+    return CACHE_EVANGILES_DIR / f"{nom}.json"
+
+def _load_cached_passages(text: str, sources: tuple):
+    path = _cache_path(text, sources)
     if not path.exists():
         return None
     try:
@@ -83,15 +97,16 @@ def _load_cached_passages(text: str):
     except Exception:
         return None
 
-def _save_cached_passages(text: str, passages: list) -> None:
+def _save_cached_passages(text: str, sources: tuple, passages: list) -> None:
     if not passages:
         return
     try:
         CACHE_EVANGILES_DIR.mkdir(exist_ok=True)
-        path = _cache_path(text)
+        path = _cache_path(text, sources)
         data = {
             "cached_at": datetime.now().isoformat(timespec="seconds"),
             "evangile_preview": text.strip()[:200],
+            "sources": list(sources),
             "passages": passages,
         }
         with open(path, "w", encoding="utf-8") as f:
@@ -147,16 +162,17 @@ def build_evangile_state(date_iso: str, include_premiere_lecture: bool) -> dict:
     return {"context": context, "text": "\n\n".join(parts), "error": None}
 
 
-def analyser_evangile(evangelium_text: str, dictees, segments, bm25, embs, cache_dir: Path) -> list:
+def analyser_evangile(evangelium_text: str, dictees, paragraphes, segments,
+                      bm25, embs, cache_dir: Path, sources: tuple) -> list:
     motif_names, motif_keywords = detect_dynamic_motifs_gpt(
         evangelium_text, cache_dir=str(cache_dir),
     )
     ranked_segments = score_segments_with_keywords(
         evangelium_text, motif_keywords, segments, bm25, embs,
-        top_k_segments=200,
+        top_k_segments=200, sources=sources,
     )
-    candidates = group_segments_by_dictee(
-        ranked_segments, dictees, top_k_dicts_pre_rerank=50,
+    candidates = group_segments_by_unit(
+        ranked_segments, dictees, paragraphes, top_k_units_pre_rerank=50,
     )
     if not candidates:
         return []
@@ -168,15 +184,13 @@ def analyser_evangile(evangelium_text: str, dictees, segments, bm25, embs, cache
 
     passages = []
     for idx in final_indices:
-        _score, d, seg = candidates[idx]
-        passages.append({
-            "tome": d.tome,
-            "date": d.date,
-            "extrait": make_excerpt(d, seg),
-        })
+        _score, unite, seg = candidates[idx]
+        passages.append(decrire_passage(unite, seg))
 
     textes = [p["extrait"] for p in passages]
-    explications = explain_passage_matches(evangelium_text, textes)
+    explications = explain_passage_matches(
+        evangelium_text, textes, descriptions=passages,
+    )
     for p, expl in zip(passages, explications):
         p["explication"] = expl
 
@@ -195,7 +209,26 @@ DICTEES, SEGMENTS, BM25, EMBS = build_or_load_index(
     cache_dir=str(DEFAULT_CACHE),
     embed_model_name="text-embedding-3-large",
 )
-print("Index chargé.")
+
+# Corpus Faustine : présent seulement si `ingest_faustine.py` a été exécuté.
+PARAGRAPHES = faustine_parser.charger_paragraphes_indexes(str(DEFAULT_CACHE))
+SOURCES_DISPONIBLES = ((SOURCE_LUISA, SOURCE_FAUSTINE) if PARAGRAPHES
+                       else (SOURCE_LUISA,))
+print(f"Index chargé : {len(SEGMENTS)} segments, "
+      f"sources disponibles : {', '.join(SOURCES_DISPONIBLES)}.")
+
+
+def sources_demandees(brut: str) -> tuple:
+    """Traduit le paramètre `sources` de la requête en tuple validé.
+
+    Une source demandée mais non ingérée est ignorée plutôt que de faire
+    échouer la requête : le client peut avoir mémorisé un choix devenu caduc.
+    """
+    demandees = [s.strip() for s in (brut or "").split(",") if s.strip()]
+    retenues = [s for s in demandees if s in SOURCES_DISPONIBLES]
+    if not retenues:
+        return (SOURCE_LUISA,)
+    return normalize_sources(retenues)
 
 # ============================================================
 # Application FastAPI
@@ -326,6 +359,7 @@ async def root(request: Request, session: Optional[str] = Cookie(default=None)):
         "context": state["context"],
         "evangile_text": state["text"],
         "error": state["error"],
+        "faustine_disponible": SOURCE_FAUSTINE in SOURCES_DISPONIBLES,
     })
 
 @app.get("/sw.js")
@@ -375,6 +409,7 @@ async def api_evangile(
 async def api_eclairage(
     request: Request,
     evangile_text: str = Form(...),
+    sources: str = Form(SOURCE_LUISA),
     session: Optional[str] = Cookie(default=None),
 ):
     """Analyse l'évangile et renvoie les 2 extraits + éclairages."""
@@ -383,6 +418,8 @@ async def api_eclairage(
 
     if not evangile_text.strip():
         raise HTTPException(status_code=400, detail="Texte vide")
+
+    sources_actives = sources_demandees(sources)
 
     # Anti-abus : limite par IP (anti-flood + quota journalier individuel)
     ip = client_ip(request)
@@ -396,10 +433,11 @@ async def api_eclairage(
     _stats_record(today_iso, eclairage=True, ip=ip)
 
     # Cache check (réponse gratuite : ne consomme pas le quota global GPT)
-    cached = _load_cached_passages(evangile_text)
+    cached = _load_cached_passages(evangile_text, sources_actives)
     if cached is not None:
         _stats_record(today_iso, cache_hit=True)
-        return JSONResponse({"passages": cached, "from_cache": True})
+        return JSONResponse({"passages": cached, "from_cache": True,
+                             "sources": list(sources_actives)})
 
     # Plafond global quotidien : borne absolue du coût OpenAI
     if not global_quota_ok(RL_ECLAIRAGE_GLOBAL_PER_DAY, today_iso):
@@ -412,14 +450,16 @@ async def api_eclairage(
     try:
         passages = await run_in_threadpool(
             analyser_evangile,
-            evangile_text, DICTEES, SEGMENTS, BM25, EMBS, DEFAULT_CACHE,
+            evangile_text, DICTEES, PARAGRAPHES, SEGMENTS, BM25, EMBS,
+            DEFAULT_CACHE, sources_actives,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur d'analyse : {e}")
 
     _stats_record(today_iso, gpt=True)
-    _save_cached_passages(evangile_text, passages)
-    return JSONResponse({"passages": passages, "from_cache": False})
+    _save_cached_passages(evangile_text, sources_actives, passages)
+    return JSONResponse({"passages": passages, "from_cache": False,
+                         "sources": list(sources_actives)})
 
 @app.post("/api/admin/clear-cache")
 async def api_admin_clear_cache(

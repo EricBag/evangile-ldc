@@ -4,7 +4,7 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Évangile du jour — Livre du Ciel</title>
-    <link rel="stylesheet" href="/static/styles.css?v=4"/>
+    <link rel="stylesheet" href="/static/styles.css?v=5"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css"/>
 
     <link rel="apple-touch-icon" sizes="180x180" href="/static/icon-180.png">
@@ -88,6 +88,21 @@
                 <span class="toggle-label">Inclure la 1<sup>ère</sup> lecture</span>
             </div>
 
+            {% if faustine_disponible %}
+            <div class="bloc-sources">
+                <p class="label-sources">Éclairer avec</p>
+                <div class="selecteur-sources" id="selecteur-sources"
+                     role="radiogroup" aria-label="Corpus à interroger">
+                    <button type="button" class="option-source" role="radio"
+                            data-sources="luisa" aria-checked="true">Luisa</button>
+                    <button type="button" class="option-source" role="radio"
+                            data-sources="faustine" aria-checked="false">Faustine</button>
+                    <button type="button" class="option-source" role="radio"
+                            data-sources="luisa,faustine" aria-checked="false">Les deux</button>
+                </div>
+            </div>
+            {% endif %}
+
             <div class="bloc-bouton">
                 <button type="button" id="bouton-eclairage" class="bouton-principal">
                     Recevoir l'éclairage
@@ -96,12 +111,12 @@
 
             <div id="spinner" class="spinner" style="display:none;">
                 <div class="spinner-cercle"></div>
-                <p class="spinner-texte">Recherche dans le Livre du Ciel…</p>
+                <p class="spinner-texte" id="spinner-texte">Recherche dans le Livre du Ciel…</p>
             </div>
 
             <div id="resultats" class="resultats" style="display:none;">
                 <hr class="separateur"/>
-                <h2 class="titre-resultats">Extraits du Livre du Ciel</h2>
+                <h2 class="titre-resultats" id="titre-resultats">Extraits du Livre du Ciel</h2>
                 <p id="cache-indicator" class="cache-indicator" style="display:none;">résultat depuis le cache</p>
                 <div id="liste-extraits"></div>
                 <div class="bloc-telecharger">
@@ -184,6 +199,73 @@
         let evangileTexteBrut = '';
         let texteAuto = '';
         let derniersResultats = null;
+
+        // --- Sélecteur de corpus (préférence mémorisée) -------------------
+        // Le Livre du Ciel seul reste le choix par défaut : c'est le
+        // comportement historique de l'application.
+        const CLE_PREF_SOURCES = 'evangile-ldc.sources';
+        const SOURCES_PAR_DEFAUT = 'luisa';
+        const selecteurSources = document.getElementById('selecteur-sources');
+
+        const LIBELLES_CORPUS = {
+            'luisa': { titre: 'du Livre du Ciel', recherche: 'le Livre du Ciel' },
+            'faustine': { titre: 'du Petit Journal', recherche: 'le Petit Journal' },
+            'luisa,faustine': { titre: 'du Livre du Ciel et du Petit Journal',
+                                recherche: 'les deux textes' },
+        };
+
+        function lirePreference(cle, valeurParDefaut) {
+            // Le stockage local peut être indisponible (navigation privée,
+            // cookies bloqués) : la préférence est alors simplement oubliée.
+            try {
+                return localStorage.getItem(cle) || valeurParDefaut;
+            } catch (e) {
+                return valeurParDefaut;
+            }
+        }
+
+        function ecrirePreference(cle, valeur) {
+            try {
+                localStorage.setItem(cle, valeur);
+            } catch (e) { /* préférence non mémorisable : sans conséquence */ }
+        }
+
+        function sourcesActives() {
+            if (!selecteurSources) return SOURCES_PAR_DEFAUT;
+            const choisi = selecteurSources.querySelector('[aria-checked="true"]');
+            return choisi ? choisi.dataset.sources : SOURCES_PAR_DEFAUT;
+        }
+
+        function appliquerSources(valeur, memoriser) {
+            if (!selecteurSources) return;
+            const options = selecteurSources.querySelectorAll('.option-source');
+            let trouve = false;
+            options.forEach((o) => {
+                const actif = o.dataset.sources === valeur;
+                o.setAttribute('aria-checked', actif ? 'true' : 'false');
+                o.classList.toggle('option-source-active', actif);
+                if (actif) trouve = true;
+            });
+            if (!trouve) {
+                appliquerSources(SOURCES_PAR_DEFAUT, false);
+                return;
+            }
+            if (memoriser) ecrirePreference(CLE_PREF_SOURCES, valeur);
+
+            const libelles = LIBELLES_CORPUS[valeur] || LIBELLES_CORPUS[SOURCES_PAR_DEFAUT];
+            document.getElementById('spinner-texte').textContent =
+                'Recherche dans ' + libelles.recherche + '…';
+            document.getElementById('titre-resultats').textContent =
+                'Extraits ' + libelles.titre;
+        }
+
+        if (selecteurSources) {
+            appliquerSources(lirePreference(CLE_PREF_SOURCES, SOURCES_PAR_DEFAUT), false);
+            selecteurSources.addEventListener('click', (evt) => {
+                const option = evt.target.closest('.option-source');
+                if (option) appliquerSources(option.dataset.sources, true);
+            });
+        }
 
         function basculerVersEvangile() {
             ecranChoix.style.display = 'none';
@@ -349,6 +431,7 @@
             try {
                 const formData = new FormData();
                 formData.append('evangile_text', texte);
+                formData.append('sources', sourcesActives());
                 const response = await fetch('/api/eclairage', {
                     method: 'POST',
                     body: formData,
@@ -379,7 +462,10 @@
             passages.forEach((p, i) => {
                 const carte = document.createElement('article');
                 carte.className = 'carte-extrait';
-                let html = `<p class="meta-extrait">Extrait ${i + 1} &nbsp;·&nbsp; Tome ${p.tome} &nbsp;·&nbsp; ${p.date}</p>`;
+                let html = `<p class="meta-extrait">Extrait ${i + 1} &nbsp;·&nbsp; ${escapeHtml(referencePassage(p))}</p>`;
+                if (p.auteur) {
+                    html += `<p class="auteur-extrait">${escapeHtml(p.auteur)}</p>`;
+                }
                 html += `<blockquote class="texte-extrait">${escapeHtml(p.extrait)}</blockquote>`;
                 if (p.explication) {
                     html += `<p class="label-eclairage">Éclairage</p>`;
@@ -392,6 +478,13 @@
             resultats.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
+        // Référence de citation. Les analyses mises en cache avant l'ajout du
+        // second corpus ne portent que `tome` et `date` : on les reconstitue.
+        function referencePassage(p) {
+            if (p.reference) return p.reference;
+            return `Tome ${p.tome} · ${p.date}`;
+        }
+
         function escapeHtml(str) {
             const div = document.createElement('div');
             div.textContent = str;
@@ -402,9 +495,11 @@
             if (!derniersResultats) return;
             let contenu = "ÉVANGILE\n" + "=".repeat(60) + "\n";
             contenu += evangileTexteBrut.trim() + "\n\n";
-            contenu += "EXTRAITS DU LIVRE DU CIEL\n" + "=".repeat(60) + "\n";
+            contenu += document.getElementById('titre-resultats').textContent.toUpperCase()
+                     + "\n" + "=".repeat(60) + "\n";
             derniersResultats.forEach((p, i) => {
-                contenu += `\nExtrait ${i + 1} — Tome ${p.tome} — ${p.date}\n`;
+                const auteur = p.auteur ? ` (${p.auteur})` : '';
+                contenu += `\nExtrait ${i + 1} — ${referencePassage(p)}${auteur}\n`;
                 contenu += "-".repeat(60) + "\n" + p.extrait + "\n";
                 if (p.explication) contenu += "\nÉclairage :\n" + p.explication + "\n";
             });
