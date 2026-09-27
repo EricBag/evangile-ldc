@@ -27,9 +27,13 @@ Féries sans Évangile propre
 ---------------------------
 Quand le fichier d'une férie n'a ni [Evangelium], ni renvoi « @ », ni règle
 d'héritage (« vide »/« ex »), l'Évangile du dimanche précédent n'est repris
-que pour les féries **après l'Épiphanie, après la Pentecôte et de l'Avent**
-(hors Quatre-Temps). Partout ailleurs (Carême, Quatre-Temps, octaves…),
-l'absence est une erreur explicite (`TradiError`), jamais une reprise tacite.
+que pour les féries **après l'Épiphanie, après la Pentecôte, de l'Avent et du
+temps pascal** (après l'octave de Pâques). Exceptions à messe propre, jamais
+reprises : Quatre-Temps de l'Avent, lundi des Rogations, vigile et fête de
+l'Ascension, vigile de la Pentecôte ; vendredi et samedi après l'Ascension :
+messe de l'Ascension. Du 2 au 5 janvier : messe de l'octave de Noël.
+Partout ailleurs (Carême, Quatre-Temps, octaves…), l'absence est une erreur
+explicite (`TradiError`), jamais une reprise tacite.
 """
 
 from __future__ import annotations
@@ -40,7 +44,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 log = logging.getLogger("tradi")
 
@@ -53,6 +57,13 @@ LATIN = "Latin"
 MENTION_SOURCE = ("Missel romain de 1962 — texte : Divinum Officium "
                   "(divinumofficium.com), traduction non identifiée")
 MENTION_LATIN = "Traduction française indisponible : texte latin"
+
+
+def temps_pascal(jour: date) -> bool:
+    """De Pâques au samedi après la Pentecôte inclus."""
+    from dateutil.easter import easter
+    paques = easter(jour.year)
+    return 0 <= (jour - paques).days <= 55
 
 
 class TradiError(RuntimeError):
@@ -202,11 +213,23 @@ class Fichier:
     renvoi_global: Optional[str] = None     # fichier commençant par « @… »
 
     def regle_vide(self) -> Optional[str]:
-        """Cible d'une règle « vide X » / « ex X » ([Rule] puis [Rank])."""
+        """Cible d'une règle « vide X » / « ex X » ([Rule] puis [Rank]).
+
+        Exception : quand le [Rank] retenu pour 1960 fait du jour une simple
+        férie sans source, un « ex X » de [Rule] est un reste de l'ancienne
+        octave (ex. Pent02-3 : « ex Tempora/Pent01-4 », octave de la
+        Fête-Dieu abolie en 1955) et n'est pas suivi — comme sur le site
+        Divinum Officium. Les « vide X » restent suivis (Quadp2-3).
+        """
+        rang = self.sections.get("Rank", [])
+        ferie_sans_source = bool(rang) and all(
+            len(l.split(";;")) < 4 and "Feria" in l for l in rang if l.strip())
         for nom in ("Rule", "Rank"):
             for ligne in self.sections.get(nom, []):
                 for item in re.split(r";;|;", ligne):
                     item = item.strip()
+                    if item.startswith("ex ") and ferie_sans_source:
+                        continue
                     if item.startswith(("vide ", "ex ")):
                         return item.split(None, 1)[1].strip()
         return None
@@ -269,6 +292,7 @@ LIVRES = {
     "marc": "Marc", "mc": "Marc", "mk": "Marc", "mar": "Marc",
     "luc": "Luc", "lc": "Luc", "lk": "Luc", "luke": "Luc",
     "joann": "Jean", "joannes": "Jean", "joan": "Jean", "joh": "Jean",
+    "ioann": "Jean", "ioannes": "Jean", "ioan": "Jean",
     "jo": "Jean", "jn": "Jean", "jean": "Jean", "john": "Jean",
 }
 
@@ -454,8 +478,9 @@ class Evangile:
     reference_brute: str        # « !Matt 22:1-14 »
     texte: str
     latin: bool = False         # repli sur le texte latin
-    reprise_dimanche: Optional[str] = None   # fichier du dimanche repris
+    reprise_dimanche: Optional[str] = None   # fichier de la messe reprise
     messes: List[str] = field(default_factory=list)  # si plusieurs messes
+    reference_latine: Optional[str] = None   # si elle diffère de la française
 
     @property
     def mention(self) -> str:
@@ -464,13 +489,40 @@ class Evangile:
         return MENTION_SOURCE + "."
 
 
+class ResultatEvangile(NamedTuple):
+    reference: str                    # référence brute, ex. « !Matt 22:1-14 »
+    paragraphes: List[str]
+    latin: bool                       # texte (en partie) latin
+    reference_latine: Optional[str] = None   # si elle diffère de la française
+
+
 # ============================================================
 # Moteur
 # ============================================================
 
-#: Féries d'Avent qui ont leur propre messe (Quatre-Temps) : jamais de reprise.
-_QUATRE_TEMPS_AVENT = {"Adv3-3", "Adv3-5", "Adv3-6"}
-_FERIE_REPRISE = re.compile(r"^(Adv|Epi|Pent)(\d+)-([1-6])$")
+#: Féries où la reprise est interdite parce que la messe est propre : un
+#: fichier sans Évangile y est une erreur de données, pas une férie ordinaire.
+#: Quatre-Temps de l'Avent ; lundi des Rogations, vigile et fête de
+#: l'Ascension, vigile de la Pentecôte (vérifiés : tous ont leur [Evangelium]).
+_SANS_REPRISE = {"Adv3-3", "Adv3-5", "Adv3-6",
+                 "Pasc5-1", "Pasc5-3", "Pasc5-4", "Pasc6-6"}
+#: Vendredi et samedi après l'Ascension : messe de l'Ascension (Divinum
+#: Officium le dit déjà par « vide Tempora/Pasc5-4 » ; filet de sécurité).
+_REPRISE_ASCENSION = {"Pasc5-5", "Pasc5-6"}
+#: Féries qui reprennent la messe du dimanche précédent. Temps pascal : à
+#: partir de la semaine in albis (Pasc1) ; l'octave de Pâques (Pasc0) et
+#: celle de la Pentecôte (Pasc7) ont leurs messes propres.
+_FERIE_REPRISE = re.compile(r"^(Adv|Epi|Pent|Pasc)(\d+)-([1-6])$")
+
+#: Textes français plus longs que la péricope de 1962 : on coupe au verset
+#: de début (marqueur) ; faute de marqueur, on affiche la référence réelle du
+#: texte français plutôt que celle du missel.
+DECOUPES_FRANCAIS = {
+    # Mardi saint : 1962 commence à Marc 14, 32 (Gethsémani) ; le français
+    # donne toute la Passion depuis 14, 1.
+    "Tempora/Quad6-2": ("Ils arrivent en un domaine appelé Gethsémani",
+                        "!Marc 14:1-72; 15:1-46"),
+}
 
 #: Marqueur de Missale Meum pour une férie sans messe propre : l'office réel
 #: est alors celui du temporal (`Day.tempora`).
@@ -491,6 +543,13 @@ EVANGILES_DANS_PRELUDE = {
     "Tempora/Quad6-5r": r"^!Joannes 18",     # Vendredi saint : Passion selon saint Jean
     "Tempora/Quad6-6r": r"^!Matt, 28",       # Vigile pascale : Matthieu 28, 1-7
 }
+
+#: Correctif du calendrier Missale Meum : sa règle « Sept Douleurs le vendredi
+#: de la Passion » s'applique avant les règles des fêtes de 1re classe et
+#: renvoie la férie en supprimant toute autre observance. Une fête de
+#: 1re classe tombant ce jour-là (saint Joseph le 19/03/2027, Annonciation)
+#: disparaissait. Elle est rétablie ici, la férie n'étant que de 3e classe.
+VENDREDI_PASSION_MISSALEMEUM = "tempora:Quad5-5Feria:3:v"
 
 NOMS_COMMUNE = {
     "Commune/C11": "Messe de la Sainte Vierge le samedi",
@@ -532,7 +591,7 @@ class MesseTraditionnelle:
         return self._fichiers.get((langue, chemin))
 
     def section(self, chemin: str, nom: str, langue: str,
-                _pile: Tuple = ()) -> Optional[Tuple[List[str], bool]]:
+                _pile: Tuple = (), pascal: bool = False) -> Optional[Tuple[List[str], bool]]:
         """Lignes de la section `nom` du fichier `chemin`, renvois résolus.
 
         Renvoie (lignes, latin) où `latin` indique qu'un morceau a dû être
@@ -543,6 +602,9 @@ class MesseTraditionnelle:
         latin (ses renvois restant résolus en français), et la structure
         d'héritage (renvoi de fichier, règle « vide »/« ex ») est lue dans le
         latin quand le fichier français ne la donne pas.
+
+        `pascal` : au temps pascal, une règle « vide Cx » renvoie au commun
+        pascal « Cxp » quand il existe (C2a → C2ap), comme le fait le site.
         """
         cle = (chemin, nom, langue)
         if cle in _pile:
@@ -554,10 +616,11 @@ class MesseTraditionnelle:
         if f is None and fl is None:
             return None
         if f is not None and nom in f.sections:
-            return self._developper(f.sections[nom], chemin, nom, langue, pile)
+            return self._developper(f.sections[nom], chemin, nom, langue, pile,
+                                    pascal=pascal)
         if fl is not None and nom in fl.sections:
             return self._developper(fl.sections[nom], chemin, nom, langue, pile,
-                                    corps_latin=True)
+                                    corps_latin=True, pascal=pascal)
         for attribut in ("renvoi_global", "regle_vide"):
             cible = None
             for source in (f, fl):
@@ -565,13 +628,17 @@ class MesseTraditionnelle:
                     v = getattr(source, attribut)
                     cible = v() if callable(v) else v
             if cible:
-                r = self.section(normaliser_cible(cible.split(":")[0], chemin),
-                                 nom, langue, pile)
+                cible = normaliser_cible(cible.split(":")[0], chemin)
+                if pascal and attribut == "regle_vide" and cible.startswith("Commune/") \
+                        and self.fichier(LATIN, cible + "p"):
+                    cible += "p"
+                r = self.section(cible, nom, langue, pile, pascal)
                 if r is not None:
                     return r
         return None
 
-    def _developper(self, lignes, chemin, nom, langue, pile, corps_latin=False):
+    def _developper(self, lignes, chemin, nom, langue, pile, corps_latin=False,
+                    pascal=False):
         sortie: List[str] = []
         latin = False
         for ligne in lignes:
@@ -585,7 +652,7 @@ class MesseTraditionnelle:
             sous = (m.group(2) or "").strip() or nom
             if sous in SECTIONS_IGNOREES:
                 continue
-            r = self.section(cible, sous, langue, pile)
+            r = self.section(cible, sous, langue, pile, pascal)
             if r is None:
                 msg = f"Renvoi non résolu : {langue}/{chemin}:{nom} → {ligne}"
                 self.incidents.append(msg)
@@ -611,11 +678,11 @@ class MesseTraditionnelle:
 
     # ---------------- Évangile d'un fichier ----------------
 
-    def _evangile_brut(self, chemin: str, langue: str):
+    def _evangile_brut(self, chemin: str, langue: str, pascal: bool = False):
         """(annonce, référence brute, paragraphes, latin) ou None."""
-        r = self.section(chemin, "Evangelium", langue)
+        r = self.section(chemin, "Evangelium", langue, pascal=pascal)
         if r is None and chemin in EVANGILES_DANS_PRELUDE:
-            return self._evangile_prelude(chemin, langue)
+            return self._evangile_prelude(chemin, langue, pascal)
         if r is None:
             return None
         lignes, latin = r
@@ -633,14 +700,14 @@ class MesseTraditionnelle:
             raise TradiError(f"{langue}/{chemin} : Évangile sans texte")
         return lignes[i_ref], paragraphes, latin
 
-    def _evangile_prelude(self, chemin: str, langue: str):
+    def _evangile_prelude(self, chemin: str, langue: str, pascal: bool = False):
         """Évangile inclus dans le déroulé complet d'une liturgie ([Prelude]).
 
         Le texte suit la ligne de référence, entrecoupé de rubriques (« !… »)
         ignorées, jusqu'à la réponse « R. », un séparateur « _ » ou une
         nouvelle partie numérotée.
         """
-        r = self.section(chemin, "Prelude", langue)
+        r = self.section(chemin, "Prelude", langue, pascal=pascal)
         if r is None:
             return None
         lignes, latin = r
@@ -659,31 +726,51 @@ class MesseTraditionnelle:
             return None
         return lignes[i_ref].strip(), paragraphes, latin
 
-    def evangile_fichier(self, chemin: str):
-        """Évangile d'un fichier : français si cohérent avec le latin.
+    def evangile_fichier(self, chemin: str, pascal: bool = False) -> Optional["ResultatEvangile"]:
+        """Évangile d'un fichier, en français de préférence.
 
-        Le latin fait foi pour la péricope : si la résolution française
-        aboutit à une autre référence (fichier français incomplet qui hérite
-        alors d'un autre texte), on prend le latin.
-        Renvoie (référence brute, paragraphes, latin) ou None.
+        Si les références française et latine diffèrent (coquille de l'une ou
+        de l'autre dans Divinum Officium), le texte français est gardé : l'écart
+        est journalisé, noté dans `incidents` et renvoyé dans
+        `reference_latine` pour le rapport.
+        Renvoie None si aucun Évangile n'est trouvé.
         """
-        la = self._evangile_brut(chemin, LATIN)
-        fr = self._evangile_brut(chemin, FRANCAIS)
-        if fr is not None and la is not None and \
-                cle_reference(fr[0]) != cle_reference(la[0]):
-            msg = (f"{chemin} : référence française {fr[0]!r} ≠ latine "
-                   f"{la[0]!r}, texte latin retenu")
+        la = self._evangile_brut(chemin, LATIN, pascal)
+        fr = self._evangile_brut(chemin, FRANCAIS, pascal)
+        if fr is None and la is None:
+            return None
+        if fr is None:
+            log.warning("%s : traduction française indisponible, texte latin", chemin)
+            return ResultatEvangile(la[0], la[1], True)
+        ref, paragraphes, latin = fr
+        if latin:
+            log.warning("%s : traduction française indisponible, texte latin", chemin)
+        elif chemin in DECOUPES_FRANCAIS:
+            ref, paragraphes = self._decouper(chemin, ref, paragraphes)
+        ref_latine = None
+        if la is not None and cle_reference(ref) != cle_reference(la[0]):
+            ref_latine = la[0]
+            msg = (f"{chemin} : écart de référence, française {ref!r} / latine "
+                   f"{la[0]!r} (texte français conservé)")
             self.incidents.append(msg)
             log.warning(msg)
-            fr = None
-        if fr is not None:
-            if fr[2]:
-                log.warning("%s : traduction française indisponible, texte latin", chemin)
-            return fr
-        if la is not None:
-            log.warning("%s : traduction française indisponible, texte latin", chemin)
-            return la[0], la[1], True
-        return None
+        return ResultatEvangile(ref, paragraphes, latin, ref_latine)
+
+    def _decouper(self, chemin, ref, paragraphes):
+        """Coupe un texte français au verset de début de la péricope de 1962.
+
+        Sans marqueur repérable, le texte reste entier et la référence
+        affichée devient celle du texte français réellement donné.
+        """
+        marqueur, ref_texte_complet = DECOUPES_FRANCAIS[chemin]
+        for i, p in enumerate(paragraphes):
+            pos = p.find(marqueur)
+            if pos >= 0:
+                return ref, [p[pos:], *paragraphes[i + 1:]]
+        msg = f"{chemin} : début de péricope introuvable, référence du texte complet"
+        self.incidents.append(msg)
+        log.warning(msg)
+        return ref_texte_complet, paragraphes
 
     # ---------------- Calendrier ----------------
 
@@ -701,6 +788,12 @@ class MesseTraditionnelle:
         """
         journee = self._calendrier(jour.year).get_day(jour)
         celebrations = [o for o in journee.celebration if o.id != FERIE_MISSALEMEUM]
+        if celebrations and celebrations[0].id == VENDREDI_PASSION_MISSALEMEUM:
+            fete = self._fete_de_premiere_classe(jour)
+            if fete is not None:
+                log.info("%s : %s l'emporte sur le vendredi de la Passion "
+                         "(correctif du calendrier)", jour, fete.id)
+                return fete, []
         if not celebrations:
             return (journee.tempora[0] if journee.tempora else None), []
         if len(celebrations) == 1:
@@ -713,6 +806,16 @@ class MesseTraditionnelle:
         if not any(o.name.startswith(("12-25m", "11-02m")) for o in celebrations):
             log.warning("%s : plusieurs messes %s, la 1re est retenue", jour, ids)
         return principale, ids
+
+    @staticmethod
+    def _fete_de_premiere_classe(jour: date):
+        """Fête de 1re classe du sanctoral fixée à cette date, s'il y en a une."""
+        from vendor.missalemeum.constants import BLOCKS
+        from vendor.missalemeum.kalendar.models import Observance
+        prefixe = f"sancti:{jour:%m-%d}:"
+        fetes = [Observance(i, jour, "la") for i in BLOCKS["la"].SANCTI
+                 if i.startswith(prefixe)]
+        return next((o for o in fetes if o.rank == 1), None)
 
     @staticmethod
     def chemin_fichier(observance, jour: date) -> str:
@@ -738,53 +841,68 @@ class MesseTraditionnelle:
                 return f.sections["Officium"][0].strip()
         return observance.title or observance.name
 
-    def _ferie_sans_temporal(self, jour: date):
-        """Férie sans office du temporal : seules celles qui suivent
-        l'Épiphanie reprennent la messe précédente (Épiphanie ou dimanche)."""
+    def _ferie_sans_temporal(self, jour: date) -> Tuple[str, str]:
+        """(messe reprise, nom) pour une férie sans office du temporal.
+
+        * 2 au 5 janvier : messe de l'octave de Noël (Sancti/01-01) ;
+        * 7 au 12 janvier : messe précédente, Épiphanie ou dimanche après
+          l'Épiphanie (Tempora/Epi1-0a).
+        """
+        jour_fr = JOURS[(jour.weekday() + 1) % 7]
+        if jour.month == 1 and 2 <= jour.day <= 5:
+            return "Sancti/01-01", f"{jour_fr} du temps de Noël (messe de l'octave de Noël)"
         j = jour
         while j.weekday() != 6 and (j.month, j.day) != (1, 6) \
                 and (j.month, j.day) != (1, 1):
             j = date.fromordinal(j.toordinal() - 1)
+        nom = f"{jour_fr} après l'Épiphanie (férie)"
         if (j.month, j.day) == (1, 6):
-            return "Sancti/01-06"
+            return "Sancti/01-06", nom
         precedente, _ = self.office_du_jour(j) if j.weekday() == 6 else (None, [])
         if precedente is not None and precedente.name == "Epi1-0":
-            return "Tempora/Epi1-0a"      # dimanche après l'Épiphanie
+            return "Tempora/Epi1-0a", nom     # dimanche après l'Épiphanie
         raise TradiError(
-            f"{jour} : férie hors temporal sans Évangile propre, avant "
-            "l'Épiphanie (aucune reprise autorisée)")
+            f"{jour} : férie hors temporal sans Évangile propre "
+            "(aucune reprise autorisée)")
+
+    def _messe_reprise(self, observance, chemin: str) -> str:
+        """Messe reprise par une férie du temporal sans Évangile propre."""
+        base = forme_de_base(observance.name)
+        m = _FERIE_REPRISE.match(base)
+        if observance.flexibility == "tempora" and base in _REPRISE_ASCENSION:
+            return "Tempora/Pasc5-4"
+        if observance.flexibility != "tempora" or not m or base in _SANS_REPRISE \
+                or (m.group(1) == "Pasc" and not 1 <= int(m.group(2)) <= 6):
+            raise TradiError(
+                f"pas d'Évangile pour {chemin} (ni section, ni renvoi, "
+                "ni règle de reprise applicable)")
+        dimanche = f"Tempora/{m.group(1)}{m.group(2)}-0"
+        return next((c for c in (dimanche + "a", dimanche)
+                     if self.fichier(LATIN, c)), dimanche)
 
     def evangile_du_jour(self, jour: date) -> Evangile:
         observance, messes = self.office_du_jour(jour)
+        pascal = temps_pascal(jour)
         reprise = None
         if observance is None:
             chemin = f"Feria/{jour.isoformat()}"
-            reprise = self._ferie_sans_temporal(jour)
-            office, nom = FERIE_MISSALEMEUM, f"{JOURS[(jour.weekday() + 1) % 7]} " \
-                "après l'Épiphanie (férie)"
-            r = self.evangile_fichier(reprise)
+            reprise, nom = self._ferie_sans_temporal(jour)
+            office = FERIE_MISSALEMEUM
+            r = self.evangile_fichier(reprise, pascal)
         else:
             chemin = self.chemin_fichier(observance, jour)
             office, nom = observance.id, self.nom_messe(observance, chemin)
             try:
-                r = self.evangile_fichier(chemin)
+                r = self.evangile_fichier(chemin, pascal)
             except _Boucle as exc:
                 self.incidents.append(f"{jour} : {exc}")
                 raise
             if r is None:
-                m = _FERIE_REPRISE.match(forme_de_base(observance.name))
-                if observance.flexibility != "tempora" or not m \
-                        or observance.name in _QUATRE_TEMPS_AVENT:
-                    raise TradiError(
-                        f"pas d'Évangile pour {chemin} (ni section, ni renvoi, "
-                        "ni règle de reprise applicable)")
-                base = f"Tempora/{m.group(1)}{m.group(2)}-0"
-                reprise = next((c for c in (base + "a", base)
-                                if self.fichier(LATIN, c)), base)
-                r = self.evangile_fichier(reprise)
+                reprise = self._messe_reprise(observance, chemin)
+                r = self.evangile_fichier(reprise, pascal)
         if r is None:
             raise TradiError(f"messe reprise {reprise} sans Évangile")
-        ref, paragraphes, latin = r
+        ref, paragraphes, latin, ref_latine = r
         return Evangile(
             date=jour.isoformat(),
             office=office,
@@ -796,6 +914,7 @@ class MesseTraditionnelle:
             latin=latin,
             reprise_dimanche=reprise,
             messes=messes,
+            reference_latine=formater_reference(ref_latine) if ref_latine else None,
         )
 
     # ---------------- Interface avec l'API ----------------
