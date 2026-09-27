@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-faustine_parser.py — Extraction et chunking du « Petit Journal » de sainte Faustine.
+faustine_parser.py — Extraction et chunking du « Petit Journal » de Sainte Faustine.
 
 Pendant de `parse_dictees` / `build_segments` (ldc_proZ.py) pour le second corpus.
 Différence structurante : l'unité de citation n'est pas une date de dictée mais un
@@ -439,7 +439,7 @@ def segmenter_paragraphes(paragraphes: Sequence[Paragraphe],
     § pointent vers lui : l'unité de citation reste le paragraphe.
 
     `id_offset` est le nombre de segments déjà présents dans l'index : les ids
-    Faustine prolongent la numérotation Luisa sans la perturber, puisque
+    Sainte Faustine prolongent la numérotation Luisa sans la perturber, puisque
     `Segment.id` sert d'index dans la matrice d'embeddings.
     """
     segments: List[Segment] = []
@@ -491,7 +491,7 @@ def charger_paragraphes(pdf_path: str,
     return construire_paragraphes(lignes, min_chars=min_chars)
 
 
-#: Nom du fichier d'index propre au corpus Faustine, dans le dossier de cache.
+#: Nom du fichier d'index propre au corpus Sainte Faustine, dans le dossier de cache.
 FICHIER_PARAGRAPHES = "paragraphes.pkl"
 
 
@@ -570,7 +570,7 @@ if __name__ == "__main__":
     import argparse
 
     parseur = argparse.ArgumentParser(
-        description="Diagnostic de l'extraction du Petit Journal de sainte Faustine."
+        description="Diagnostic de l'extraction du Petit Journal de Sainte Faustine."
     )
     parseur.add_argument("--pdf", default="data/faustine/petit_journal.pdf")
     parseur.add_argument("--min-chars", type=int, default=MIN_CHARS_PARAGRAPHE)

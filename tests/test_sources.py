@@ -153,7 +153,7 @@ class TestNormalisationLocale(unittest.TestCase):
     """La normalisation doit porter sur les seuls segments retenus.
 
     Corpus construit pour que le Livre du Ciel domine très largement la
-    composante sémantique. Normalisées globalement, les valeurs Faustine
+    composante sémantique. Normalisées globalement, les valeurs Sainte Faustine
     resteraient écrasées près de zéro et la pondération 0.45/0.45 ne porterait
     plus sur des grandeurs comparables.
     """
@@ -167,7 +167,7 @@ class TestNormalisationLocale(unittest.TestCase):
         ]
         self.bm25 = BM25Okapi([s.tokens for s in self.segments])
         requete = np.ones(DIM, dtype=np.float32) / np.sqrt(DIM)
-        # Le segment 3 domine Faustine sur les deux composantes à la fois.
+        # Le segment 3 domine Sainte Faustine sur les deux composantes à la fois.
         self.embs = np.array(
             [requete, requete, requete * 0.10, requete * 0.11], dtype=np.float32)
         self.requete = requete
@@ -209,7 +209,7 @@ class TestRegroupementParUnite(BaseCorpus):
         self.assertEqual(sum(1 for u in unites if isinstance(u, L.Paragraphe)), 2)
 
     def test_paragraphes_absents_ecartes(self):
-        """Sans corpus Faustine chargé, aucune unité Faustine n'est proposée."""
+        """Sans corpus Sainte Faustine chargé, aucune unité Sainte Faustine n'est proposée."""
         groupes = L.group_segments_by_unit(
             self.scores_factices(), self.dictees, paragraphes=None)
         self.assertTrue(all(isinstance(u, L.Dictee) for _s, u, _seg in groupes))
@@ -277,7 +277,7 @@ class TestCitation(BaseCorpus):
     def test_description_faustine(self):
         description = L.decrire_passage(self.paragraphes[0], self.segments[3])
         self.assertEqual(description["source"], L.SOURCE_FAUSTINE)
-        self.assertEqual(description["auteur"], "sainte Faustine")
+        self.assertEqual(description["auteur"], "Sainte Faustine")
         self.assertIn(L.SOURCE_FAUSTINE_LABEL, description["reference"])
         self.assertLessEqual(len(description["extrait"]),
                              L.MAX_CHARS_CITATION_FAUSTINE)
@@ -321,7 +321,7 @@ class TestAttributionDansLesPrompts(BaseCorpus):
     def test_entete_bi_source_avec_auteur_et_oeuvre(self):
         description = L.decrire_passage(self.paragraphes[0], self.segments[3])
         entete = L._entete_passage(description, True)
-        self.assertEqual(entete, "sainte Faustine — Petit Journal, § 743")
+        self.assertEqual(entete, "Sainte Faustine — Petit Journal, § 743")
 
     def test_entete_bi_source_ne_repete_pas_loeuvre(self):
         """L'œuvre est nommée une fois : « Petit Journal » ne doit pas doubler."""

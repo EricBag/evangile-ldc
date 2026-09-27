@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-ingest_faustine.py — Ajoute le « Petit Journal » de sainte Faustine à l'index.
+ingest_faustine.py — Ajoute le « Petit Journal » de Sainte Faustine à l'index.
 
 Le principe directeur : **ne jamais recalculer les vecteurs du Livre du Ciel**.
 Les embeddings de Luisa sont relus tels quels depuis `embs.npy` et les vecteurs
-Faustine leur sont concaténés, en float16 comme eux.
+Sainte Faustine leur sont concaténés, en float16 comme eux.
 
 Ce qui est écrit :
 
-  embs.npy        vecteurs Luisa (inchangés) + vecteurs Faustine
-  segments.pkl    segments Luisa (inchangés) + segments Faustine
-  paragraphes.pkl unité de citation du corpus Faustine (nouveau fichier)
+  embs.npy        vecteurs Luisa (inchangés) + vecteurs Sainte Faustine
+  segments.pkl    segments Luisa (inchangés) + segments Sainte Faustine
+  paragraphes.pkl unité de citation du corpus Sainte Faustine (nouveau fichier)
   bm25.pkl        reconstruit sur le corpus complet
 
 `bm25.pkl` est le seul artefact intégralement recalculé : `rank_bm25` ne sait pas
@@ -19,7 +19,7 @@ ajouter un document à un index existant. C'est du calcul local, sans appel d'AP
 et sans effet sur les embeddings.
 
 Le script est **idempotent** : relancé, il repart des seuls segments Luisa et
-remplace le lot Faustine au lieu de l'empiler.
+remplace le lot Sainte Faustine au lieu de l'empiler.
 
 Usage :
     python ingest_faustine.py --dry-run     # diagnostic + estimation, sans appel API
@@ -78,7 +78,7 @@ def refaire_metadonnees(cache_dir: str) -> None:
     chemins = _chemins(cache_dir)
     if not os.path.exists(chemins["paragraphes"]):
         raise SystemExit(
-            f"[ERREUR] Corpus Faustine introuvable : {chemins['paragraphes']}"
+            f"[ERREUR] Corpus Sainte Faustine introuvable : {chemins['paragraphes']}"
         )
 
     with open(chemins["paragraphes"], "rb") as f:
@@ -158,10 +158,10 @@ def ingerer(pdf_path: str,
     deja_faustine = len(segments_existants) - len(luisa)
     print(f"[INFO] Segments Luisa conservés : {len(luisa)}")
     if deja_faustine:
-        print(f"[INFO] Lot Faustine existant remplacé : {deja_faustine} segment(s)")
+        print(f"[INFO] Lot Sainte Faustine existant remplacé : {deja_faustine} segment(s)")
 
     # --------------------------------------------------------
-    # 2. Corpus Faustine
+    # 2. Corpus Sainte Faustine
     # --------------------------------------------------------
     print(f"[INFO] Lecture du PDF : {pdf_path}")
     paragraphes = fp.charger_paragraphes(pdf_path, min_chars=min_chars)
@@ -174,7 +174,7 @@ def ingerer(pdf_path: str,
     # ~4 caractères par token en français : l'ordre de grandeur suffit ici.
     tokens_estimes = caracteres / 4
     cout = tokens_estimes / 1_000_000 * USD_PAR_MILLION_TOKENS
-    print(f"[INFO] Segments Faustine : {len(segments_faustine)} "
+    print(f"[INFO] Segments Sainte Faustine : {len(segments_faustine)} "
           f"({caracteres} caractères)")
     print(f"[INFO] Encodage estimé : ~{tokens_estimes:,.0f} tokens "
           f"≈ {cout:.2f} $ ({MODELE_EMBEDDINGS})")
@@ -184,7 +184,7 @@ def ingerer(pdf_path: str,
         return
 
     # --------------------------------------------------------
-    # 3. Embeddings des seuls segments Faustine
+    # 3. Embeddings des seuls segments Sainte Faustine
     # --------------------------------------------------------
     embs_faustine = embed_texts_openai(
         [s.text for s in segments_faustine], model_name=MODELE_EMBEDDINGS,
@@ -226,7 +226,7 @@ def ingerer(pdf_path: str,
 
 def main() -> None:
     parseur = argparse.ArgumentParser(
-        description="Ajoute le Petit Journal de sainte Faustine à l'index existant."
+        description="Ajoute le Petit Journal de Sainte Faustine à l'index existant."
     )
     parseur.add_argument("--pdf", default=PDF_DEFAUT)
     parseur.add_argument("--cache-dir", default=CACHE_DIR_DEFAUT)

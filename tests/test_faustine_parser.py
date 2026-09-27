@@ -313,7 +313,7 @@ INDEX_PRESENT = os.path.exists(
 
 
 @unittest.skipUnless(INDEX_PRESENT,
-                     "corpus Faustine non ingéré (ingest_faustine.py)")
+                     "corpus Sainte Faustine non ingéré (ingest_faustine.py)")
 class TestCorpusIndexe(unittest.TestCase):
     """Vérifications sur le corpus réellement indexé, pas sur des cas construits."""
 

@@ -54,11 +54,14 @@ body {
     text-align: center;
 }
 
+/* Même portrait que celui du diptyque : vertical, donc plus étroit que
+   l'ancienne photo en paysage, pour ne pas occuper tout l'écran de connexion. */
 .login-photo {
-    width: 240px;
+    width: 150px;
     height: auto;
-    border-radius: 12px;
-    margin: 0 auto 0.4rem;
+    border: 1px solid #c9b074;
+    border-radius: 6px;
+    margin: 0 auto 0.6rem;
     display: block;
 }
 
@@ -151,13 +154,56 @@ body {
     text-align: center;
 }
 
-/* Photo Luisa */
-.photo-luisa {
-    width: 240px;
-    height: auto;
-    border-radius: 12px;
+/* Diptyque des portraits (Luisa, Sainte Faustine) */
+.diptyque {
+    --largeur-portrait: 138px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    /* La hauteur reste constante quand un portrait s'efface : sans cela le
+       titre remonterait d'un coup au changement de corpus. */
+    min-height: calc(var(--largeur-portrait) * 1.5);
+    margin-bottom: 0.55rem;
+}
+
+.portrait {
+    flex: 0 0 auto;
+    width: var(--largeur-portrait);
+    margin: 0 6px;
+    border: 1px solid #c9b074;
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: #fdfaf2;
+    transition: width 0.38s ease, margin 0.38s ease, opacity 0.38s ease,
+                transform 0.38s ease, border-width 0.38s ease;
+}
+
+.portrait img {
     display: block;
-    margin: 0 auto 0.4rem;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    object-position: center;
+}
+
+/* Portrait d'une source non interrogée : replié sur lui-même, pas masqué
+   d'un `display: none` qui empêcherait toute transition. */
+.portrait-masque {
+    width: 0;
+    margin: 0;
+    border-width: 0;
+    opacity: 0;
+    transform: scale(0.9);
+}
+
+.diptyque-sans-transition .portrait {
+    transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .portrait {
+        transition: none;
+    }
 }
 
 /* Titre */
@@ -1062,8 +1108,8 @@ body {
         padding: 2rem 1.25rem 3rem;
     }
 
-    .photo-luisa {
-        width: 200px;
+    .diptyque {
+        --largeur-portrait: 118px;
     }
 
     .titre {

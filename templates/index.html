@@ -4,7 +4,7 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Évangile du jour — Livre du Ciel</title>
-    <link rel="stylesheet" href="/static/styles.css?v=5"/>
+    <link rel="stylesheet" href="/static/styles.css?v=6"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css"/>
 
     <link rel="apple-touch-icon" sizes="180x180" href="/static/icon-180.png">
@@ -26,9 +26,18 @@
 <body class="page-main">
     <main class="container">
 
-        <img src="/static/luisa.jpg" alt="Luisa Piccarreta" class="photo-luisa"/>
+        <div class="diptyque" id="diptyque">
+            <span class="portrait" data-source="luisa">
+                <img src="/static/luisa.jpg?v=6" alt="Luisa Piccarreta"/>
+            </span>
+            {% if faustine_disponible %}
+            <span class="portrait" data-source="faustine">
+                <img src="/static/faustine.jpg?v=6" alt="Sainte Faustine"/>
+            </span>
+            {% endif %}
+        </div>
         <h1 class="titre">Évangile du jour</h1>
-        <p class="sous-titre">à la lumière du <em>Livre du Ciel</em> de Luisa Piccarreta</p>
+        <p class="sous-titre" id="sous-titre">à la lumière du <em>Livre du Ciel</em> de Luisa Piccarreta</p>
 
         <div id="ecran-choix" class="ecran-choix">
             <div class="bloc-choix">
@@ -96,7 +105,7 @@
                     <button type="button" class="option-source" role="radio"
                             data-sources="luisa" aria-checked="true">Luisa</button>
                     <button type="button" class="option-source" role="radio"
-                            data-sources="faustine" aria-checked="false">Faustine</button>
+                            data-sources="faustine" aria-checked="false">Sainte Faustine</button>
                     <button type="button" class="option-source" role="radio"
                             data-sources="luisa,faustine" aria-checked="false">Les deux</button>
                 </div>
@@ -206,12 +215,30 @@
         const CLE_PREF_SOURCES = 'evangile-ldc.sources';
         const SOURCES_PAR_DEFAUT = 'luisa';
         const selecteurSources = document.getElementById('selecteur-sources');
+        const diptyque = document.getElementById('diptyque');
 
+        // `soustitre` contient du balisage (les titres d'œuvres sont en
+        // italique) : ce sont des constantes écrites ici, jamais une saisie.
         const LIBELLES_CORPUS = {
-            'luisa': { titre: 'du Livre du Ciel', recherche: 'le Livre du Ciel' },
-            'faustine': { titre: 'du Petit Journal', recherche: 'le Petit Journal' },
-            'luisa,faustine': { titre: 'du Livre du Ciel et du Petit Journal',
-                                recherche: 'les deux textes' },
+            'luisa': {
+                titre: 'du Livre du Ciel',
+                recherche: 'le Livre du Ciel',
+                soustitre: 'à la lumière du <em>Livre du Ciel</em> '
+                         + 'de Luisa Piccarreta',
+            },
+            'faustine': {
+                titre: 'du Petit Journal',
+                recherche: 'le Petit Journal',
+                soustitre: 'à la lumière du <em>Petit Journal</em> '
+                         + 'de Sainte Faustine',
+            },
+            'luisa,faustine': {
+                titre: 'du Livre du Ciel et du Petit Journal',
+                recherche: 'les deux textes',
+                soustitre: 'à la lumière du <em>Livre du Ciel</em> '
+                         + 'de Luisa Piccarreta et du <em>Petit Journal</em> '
+                         + 'de Sainte Faustine',
+            },
         };
 
         function lirePreference(cle, valeurParDefaut) {
@@ -257,10 +284,25 @@
                 'Recherche dans ' + libelles.recherche + '…';
             document.getElementById('titre-resultats').textContent =
                 'Extraits ' + libelles.titre;
+            document.getElementById('sous-titre').innerHTML = libelles.soustitre;
+
+            // Le diptyque ne montre que les sources interrogées : un seul
+            // portrait, centré, quand un seul corpus est choisi.
+            const actives = valeur.split(',');
+            diptyque.querySelectorAll('.portrait').forEach((p) => {
+                p.classList.toggle('portrait-masque',
+                                   actives.indexOf(p.dataset.source) === -1);
+            });
         }
 
         if (selecteurSources) {
+            // Le placement initial ne doit pas s'animer : la transition n'a de
+            // sens que lorsque l'utilisateur change lui-même de corpus.
+            diptyque.classList.add('diptyque-sans-transition');
             appliquerSources(lirePreference(CLE_PREF_SOURCES, SOURCES_PAR_DEFAUT), false);
+            requestAnimationFrame(() => {
+                diptyque.classList.remove('diptyque-sans-transition');
+            });
             selecteurSources.addEventListener('click', (evt) => {
                 const option = evt.target.closest('.option-source');
                 if (option) appliquerSources(option.dataset.sources, true);

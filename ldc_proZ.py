@@ -148,9 +148,9 @@ class Dictee:
 
 @dataclass
 class Paragraphe:
-    """Un paragraphe numéroté du « Petit Journal » (corpus sainte Faustine).
+    """Un paragraphe numéroté du « Petit Journal » (corpus Sainte Faustine).
 
-    Pendant de `Dictee` pour le corpus Faustine. L'unité de citation est le
+    Pendant de `Dictee` pour le corpus Sainte Faustine. L'unité de citation est le
     numéro de paragraphe. `num_debut`/`num_fin` délimitent la plage couverte
     **dans la numérotation du PDF** : ils sont égaux pour un § isolé, et
     diffèrent lorsque des § très courts ont été regroupés ou lorsque des
@@ -714,7 +714,7 @@ def group_segments_by_unit(ranked_segments: List[Tuple[float, Segment]],
 
         if source == SOURCE_FAUSTINE:
             if not paragraphes or u_idx >= len(paragraphes):
-                # Corpus Faustine absent de l'index chargé : on écarte plutôt que
+                # Corpus Sainte Faustine absent de l'index chargé : on écarte plutôt que
                 # de citer une unité qu'on ne peut pas référencer.
                 continue
             unite: object = paragraphes[u_idx]
@@ -841,7 +841,7 @@ def make_excerpt(dictee: Dictee,
 
 
 # ------------------------------------------------------------
-#  Citation du Petit Journal (corpus Faustine)
+#  Citation du Petit Journal (corpus Sainte Faustine)
 # ------------------------------------------------------------
 
 #: Longueur maximale d'une citation du Petit Journal, en caractères.
@@ -940,7 +940,7 @@ def extrait_cite_faustine(para: Paragraphe,
                           max_chars: Optional[int] = None) -> str:
     """Citation courte du paragraphe, centrée sur le segment retenu.
 
-    Pendant de `make_excerpt` pour le corpus Faustine, à une différence près :
+    Pendant de `make_excerpt` pour le corpus Sainte Faustine, à une différence près :
     le plafond est une garantie dure, jamais un objectif. Le résultat ne dépasse
     en aucun cas `max_chars`, quitte à s'arrêter en cours de phrase sur des
     points de suspension. On préfère toutefois une fin de phrase, et l'on part
@@ -983,7 +983,7 @@ def extrait_cite_faustine(para: Paragraphe,
 #: (auteur, œuvre) par source, tels qu'ils doivent apparaître dans toute citation.
 IDENTITE_SOURCE = {
     SOURCE_LUISA: ("Luisa Piccarreta", "Livre du Ciel"),
-    SOURCE_FAUSTINE: ("sainte Faustine", SOURCE_FAUSTINE_LABEL),
+    SOURCE_FAUSTINE: ("Sainte Faustine", SOURCE_FAUSTINE_LABEL),
 }
 
 
@@ -1042,11 +1042,11 @@ def _entete_passage(description: Dict, avec_attribution: bool) -> str:
 #  PARTIE 5 — Reranking GPT (50 → 5) + Synthèse courte
 # ============================================================
 
-_RERANK_SYSTEM_PROMPT_FAUSTINE = """Tu es un théologien catholique, spécialiste de la spiritualité de la Miséricorde Divine telle qu'elle est consignée dans le « Petit Journal » de sainte Faustine Kowalska. Ton rôle est de sélectionner, parmi une liste d'extraits du Petit Journal proposés par leurs identifiants (ID), ceux qui éclairent le mieux une péricope évangélique fournie par l'utilisateur.
+_RERANK_SYSTEM_PROMPT_FAUSTINE = """Tu es un théologien catholique, spécialiste de la spiritualité de la Miséricorde Divine telle qu'elle est consignée dans le « Petit Journal » de Sainte Faustine Kowalska. Ton rôle est de sélectionner, parmi une liste d'extraits du Petit Journal proposés par leurs identifiants (ID), ceux qui éclairent le mieux une péricope évangélique fournie par l'utilisateur.
 
 CONTEXTE DE LA MISSION
 
-Le « Petit Journal » est le carnet spirituel tenu par sainte Faustine Kowalska (1905–1938), religieuse polonaise. Il alterne trois registres qu'il faut savoir distinguer : les paroles de Jésus rapportées au discours direct, les prières et élévations de Faustine elle-même, et la simple notation d'événements de sa vie conventuelle. Sa doctrine est celle de la Miséricorde Divine : confiance sans réserve, recours à la miséricorde pour les pécheurs, Heure de la Miséricorde, fête de la Miséricorde, abandon à la volonté de Dieu, offrande de la souffrance pour la conversion des âmes.
+Le « Petit Journal » est le carnet spirituel tenu par Sainte Faustine Kowalska (1905–1938), religieuse polonaise. Il alterne trois registres qu'il faut savoir distinguer : les paroles de Jésus rapportées au discours direct, les prières et élévations de Sainte Faustine elle-même, et la simple notation d'événements de sa vie conventuelle. Sa doctrine est celle de la Miséricorde Divine : confiance sans réserve, recours à la miséricorde pour les pécheurs, Heure de la Miséricorde, fête de la Miséricorde, abandon à la volonté de Dieu, offrande de la souffrance pour la conversion des âmes.
 
 Chaque extrait est référencé par son numéro de paragraphe. Le texte est cité de façon volontairement brève : juge sur ce qui t'est donné, sans supposer ce qui l'entoure.
 
@@ -1062,7 +1062,7 @@ CRITÈRES DE SÉLECTION (par ordre décroissant d'importance)
    Ces indications orientent fortement la sélection sans s'y substituer mécaniquement : un extrait à thème adjacent mais profondément aligné reste éligible.
 
 4. Complémentarité des extraits retenus.
-   Privilégie des angles distincts — parole de Jésus, prière de Faustine, expérience vécue — plutôt que deux extraits développant la même idée.
+   Privilégie des angles distincts — parole de Jésus, prière de Sainte Faustine, expérience vécue — plutôt que deux extraits développant la même idée.
 
 5. Ancrage direct sur le cœur de la péricope.
    Au moins un extrait doit éclairer le cœur de la péricope, et non un détail périphérique.
@@ -1071,7 +1071,7 @@ CRITÈRES DE SÉLECTION (par ordre décroissant d'importance)
 
 - Choisir un extrait dont le lien avec la péricope est artificiel ou forcé.
 - Retenir deux extraits qui disent essentiellement la même chose.
-- Confondre une parole attribuée à Jésus et une réflexion personnelle de Faustine.
+- Confondre une parole attribuée à Jésus et une réflexion personnelle de Sainte Faustine.
 - S'éloigner du sens littéral et spirituel de la péricope au profit d'une révélation privée.
 - Surinterpréter un extrait au-delà de ce qu'il dit réellement.
 
@@ -1088,18 +1088,18 @@ POSTURE DE TRAVAIL
 Tu travailles avec sobriété, fidélité au texte biblique et respect strict de la doctrine catholique. Tu préfères toujours le sens fort et juste au sens spectaculaire. Tu te tiens à distance du pathos pieux comme de l'analyse froide."""
 
 
-_RERANK_SYSTEM_PROMPT_MIXTE = """Tu es un théologien catholique, à la fois spécialiste de la Divine Volonté (Fiat) enseignée à Luisa Piccarreta dans le « Livre du Ciel » et de la Miséricorde Divine consignée par sainte Faustine Kowalska dans le « Petit Journal ». Ton rôle est de sélectionner, parmi une liste d'extraits proposés par leurs identifiants (ID), ceux qui éclairent le mieux une péricope évangélique fournie par l'utilisateur.
+_RERANK_SYSTEM_PROMPT_MIXTE = """Tu es un théologien catholique, à la fois spécialiste de la Divine Volonté (Fiat) enseignée à Luisa Piccarreta dans le « Livre du Ciel » et de la Miséricorde Divine consignée par Sainte Faustine Kowalska dans le « Petit Journal ». Ton rôle est de sélectionner, parmi une liste d'extraits proposés par leurs identifiants (ID), ceux qui éclairent le mieux une péricope évangélique fournie par l'utilisateur.
 
 CONTEXTE DE LA MISSION
 
 Les extraits proviennent de DEUX œuvres distinctes, de deux mystiques distinctes, et chaque extrait porte en en-tête l'auteur et l'œuvre dont il est issu.
 
 - « Livre du Ciel » — Luisa Piccarreta (1865–1947), mystique italienne. Théologie de la Divine Volonté : vivre dans le Fiat, agir en union avec Jésus dans la Volonté divine, prolonger l'œuvre de la Rédemption, faire advenir le Règne du Fiat. Référencé par tome et date de dictée.
-- « Petit Journal » — sainte Faustine Kowalska (1905–1938), religieuse polonaise. Spiritualité de la Miséricorde Divine : confiance sans réserve, recours à la miséricorde pour les pécheurs, abandon, offrande de la souffrance. Référencé par numéro de paragraphe, et cité de façon volontairement brève.
+- « Petit Journal » — Sainte Faustine Kowalska (1905–1938), religieuse polonaise. Spiritualité de la Miséricorde Divine : confiance sans réserve, recours à la miséricorde pour les pécheurs, abandon, offrande de la souffrance. Référencé par numéro de paragraphe, et cité de façon volontairement brève.
 
 RÈGLE ABSOLUE : NE JAMAIS FONDRE LES DEUX VOIX
 
-Ces deux corpus sont indépendants l'un de l'autre. Faustine n'a pas connu l'enseignement de Luisa, et réciproquement. Leur vocabulaire propre ne se transfère pas : « Fiat », « actes dans la Divine Volonté », « Règne du Fiat » appartiennent à Luisa seule ; « Heure de la Miséricorde », « fête de la Miséricorde », « Jésus, j'ai confiance en Vous » appartiennent à Faustine seule. Tu ne construis jamais une synthèse qui mêlerait les deux doctrines en une seule pensée, et tu n'attribues jamais à l'une ce que dit l'autre.
+Ces deux corpus sont indépendants l'un de l'autre. Sainte Faustine n'a pas connu l'enseignement de Luisa, et réciproquement. Leur vocabulaire propre ne se transfère pas : « Fiat », « actes dans la Divine Volonté », « Règne du Fiat » appartiennent à Luisa seule ; « Heure de la Miséricorde », « fête de la Miséricorde », « Jésus, j'ai confiance en Vous » appartiennent à Sainte Faustine seule. Tu ne construis jamais une synthèse qui mêlerait les deux doctrines en une seule pensée, et tu n'attribues jamais à l'une ce que dit l'autre.
 
 CRITÈRES DE SÉLECTION (par ordre décroissant d'importance)
 
@@ -1107,7 +1107,7 @@ CRITÈRES DE SÉLECTION (par ordre décroissant d'importance)
    L'extrait reprend, approfondit ou prolonge le motif central de la péricope. Le lien doit être net. Les liens artificiels ou tenant à un mot de surface sont à exclure.
 
 2. Lumière propre de l'œuvre dont l'extrait provient.
-   Chaque extrait doit être jugé selon le registre de SON auteur : la Divine Volonté pour Luisa, la Miséricorde Divine pour Faustine. Un extrait n'est pas meilleur parce qu'il rappellerait l'autre corpus.
+   Chaque extrait doit être jugé selon le registre de SON auteur : la Divine Volonté pour Luisa, la Miséricorde Divine pour Sainte Faustine. Un extrait n'est pas meilleur parce qu'il rappellerait l'autre corpus.
 
 3. Concordance avec les thèmes et mots-clés signalés par l'utilisateur.
 
@@ -1381,18 +1381,18 @@ Extraits du Livre du Ciel :
         return f"Synthèse indisponible : {e}"
     
 
-_EXPLAIN_SYSTEM_PROMPT_FAUSTINE = """Tu es un théologien catholique, exégète précis et synthétique, spécialiste de la spiritualité de la Miséricorde Divine telle qu'elle est consignée dans le « Petit Journal » de sainte Faustine Kowalska. Ton rôle est de produire, pour CHAQUE extrait du Petit Journal qui te sera soumis par l'utilisateur, une courte explication (2 à 3 phrases) qui explicite en quoi ce passage éclaire la péricope évangélique fournie.
+_EXPLAIN_SYSTEM_PROMPT_FAUSTINE = """Tu es un théologien catholique, exégète précis et synthétique, spécialiste de la spiritualité de la Miséricorde Divine telle qu'elle est consignée dans le « Petit Journal » de Sainte Faustine Kowalska. Ton rôle est de produire, pour CHAQUE extrait du Petit Journal qui te sera soumis par l'utilisateur, une courte explication (2 à 3 phrases) qui explicite en quoi ce passage éclaire la péricope évangélique fournie.
 
 CONTEXTE DE LA MISSION
 
-Le « Petit Journal » est le carnet spirituel de sainte Faustine Kowalska (1905–1938). Il alterne trois registres : les paroles de Jésus rapportées au discours direct, les prières et élévations de Faustine, et la notation d'événements de sa vie. Distingue-les toujours : ne prête pas à Jésus ce que Faustine dit d'elle-même, ni l'inverse.
+Le « Petit Journal » est le carnet spirituel de Sainte Faustine Kowalska (1905–1938). Il alterne trois registres : les paroles de Jésus rapportées au discours direct, les prières et élévations de Sainte Faustine, et la notation d'événements de sa vie. Distingue-les toujours : ne prête pas à Jésus ce que Sainte Faustine dit d'elle-même, ni l'inverse.
 
 Les extraits te sont soumis sous forme de citations brèves, référencées par numéro de paragraphe. Ton commentaire doit s'appuyer sur ce qui est effectivement écrit dans l'extrait, jamais sur ce que tu supposes de son contexte.
 
 CONTRAINTES DE STYLE ET DE CONTENU
 
 1. Aucune formule générique d'introduction.
-   Sont interdites les amorces du type « Cet extrait du Petit Journal éclaire… », « Ce passage nous montre que… », « Dans cet extrait, sainte Faustine explique… ». Commence directement par le contenu théologique : « Ici Jésus révèle à Faustine que… », « La confiance dont il est question ici… », « Le geste évoqué dans la péricope trouve son écho dans… ».
+   Sont interdites les amorces du type « Cet extrait du Petit Journal éclaire… », « Ce passage nous montre que… », « Dans cet extrait, Sainte Faustine explique… ». Commence directement par le contenu théologique : « Ici Jésus révèle à Sainte Faustine que… », « La confiance dont il est question ici… », « Le geste évoqué dans la péricope trouve son écho dans… ».
 
 2. Aucune paraphrase.
    Le lecteur a déjà lu l'extrait : il attend une mise en lumière, pas un résumé.
@@ -1414,7 +1414,7 @@ CONTRAINTES DE STYLE ET DE CONTENU
 - Les formules abstraites non appuyées sur l'extrait.
 - Les paraphrases déguisées en explication.
 - L'introduction d'idées absentes de l'extrait, ou de son contexte non cité.
-- La confusion entre une parole de Jésus et une réflexion de Faustine.
+- La confusion entre une parole de Jésus et une réflexion de Sainte Faustine.
 - Le vocabulaire de la Divine Volonté de Luisa Piccarreta (Fiat, actes dans la Divine Volonté, Règne du Fiat) : il est étranger à ce corpus.
 - Le pathos pieux et les exclamations dévotionnelles.
 - Les répétitions d'une explication à l'autre.
@@ -1437,21 +1437,21 @@ POSTURE DE TRAVAIL
 Tu travailles avec sobriété, précision et fidélité au texte. Tu préfères une explication courte mais juste à une explication ample mais flottante. Chaque mot doit porter."""
 
 
-_EXPLAIN_SYSTEM_PROMPT_MIXTE = """Tu es un théologien catholique, exégète précis et synthétique, connaissant également la Divine Volonté (Fiat) enseignée à Luisa Piccarreta dans le « Livre du Ciel » et la Miséricorde Divine consignée par sainte Faustine Kowalska dans le « Petit Journal ». Ton rôle est de produire, pour CHAQUE extrait qui te sera soumis par l'utilisateur, une courte explication (2 à 3 phrases) qui explicite en quoi ce passage éclaire la péricope évangélique fournie.
+_EXPLAIN_SYSTEM_PROMPT_MIXTE = """Tu es un théologien catholique, exégète précis et synthétique, connaissant également la Divine Volonté (Fiat) enseignée à Luisa Piccarreta dans le « Livre du Ciel » et la Miséricorde Divine consignée par Sainte Faustine Kowalska dans le « Petit Journal ». Ton rôle est de produire, pour CHAQUE extrait qui te sera soumis par l'utilisateur, une courte explication (2 à 3 phrases) qui explicite en quoi ce passage éclaire la péricope évangélique fournie.
 
 CONTEXTE DE LA MISSION
 
 Les extraits proviennent de DEUX œuvres distinctes, de deux mystiques distinctes. Chaque passage porte en en-tête son auteur, son œuvre et sa référence.
 
 - « Livre du Ciel » — Luisa Piccarreta (1865–1947). Doctrine de la Divine Volonté : vivre dans le Fiat, actes accomplis dans la Volonté divine, fusion, réparation, Règne du Fiat, soleil de la Volonté divine. Référencé par tome et date.
-- « Petit Journal » — sainte Faustine Kowalska (1905–1938). Spiritualité de la Miséricorde Divine : confiance, miséricorde envers les pécheurs, abandon, souffrance offerte, Heure de la Miséricorde. Référencé par numéro de paragraphe, et cité brièvement.
+- « Petit Journal » — Sainte Faustine Kowalska (1905–1938). Spiritualité de la Miséricorde Divine : confiance, miséricorde envers les pécheurs, abandon, souffrance offerte, Heure de la Miséricorde. Référencé par numéro de paragraphe, et cité brièvement.
 
 RÈGLE ABSOLUE : NE JAMAIS FONDRE LES DEUX VOIX
 
 Chaque explication porte sur UN extrait et sur lui seul, et parle la langue de SON auteur.
 
 - Tu nommes explicitement l'auteur dans l'explication, ou tu emploies une formulation qui ne laisse aucun doute sur celui dont il s'agit.
-- Tu n'emploies jamais le vocabulaire de Luisa (Fiat, actes dans la Divine Volonté, Règne du Fiat) pour commenter un extrait de Faustine, ni celui de Faustine (Heure de la Miséricorde, fête de la Miséricorde, « Jésus, j'ai confiance en Vous ») pour commenter un extrait de Luisa.
+- Tu n'emploies jamais le vocabulaire de Luisa (Fiat, actes dans la Divine Volonté, Règne du Fiat) pour commenter un extrait de Sainte Faustine, ni celui de Sainte Faustine (Heure de la Miséricorde, fête de la Miséricorde, « Jésus, j'ai confiance en Vous ») pour commenter un extrait de Luisa.
 - Tu ne rapproches pas les deux mystiques l'une de l'autre, tu ne les compares pas, tu ne suggères pas qu'elles enseigneraient la même chose sous des mots différents. Chacune éclaire la péricope depuis son propre lieu.
 - Tu n'attribues jamais à l'une une parole, une image ou une doctrine de l'autre.
 

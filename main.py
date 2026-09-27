@@ -210,7 +210,7 @@ DICTEES, SEGMENTS, BM25, EMBS = build_or_load_index(
     embed_model_name="text-embedding-3-large",
 )
 
-# Corpus Faustine : présent seulement si `ingest_faustine.py` a été exécuté.
+# Corpus Sainte Faustine : présent seulement si `ingest_faustine.py` a été exécuté.
 PARAGRAPHES = faustine_parser.charger_paragraphes_indexes(str(DEFAULT_CACHE))
 SOURCES_DISPONIBLES = ((SOURCE_LUISA, SOURCE_FAUSTINE) if PARAGRAPHES
                        else (SOURCE_LUISA,))
