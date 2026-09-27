@@ -142,6 +142,19 @@ class TestDatesDeReference(unittest.TestCase):
         self.assertEqual(e.corrections,
                          ["Sancti/06-28r (Latin) : Jean 21, 15-10 → Jean 21, 15-19"])
 
+    def test_rameaux_passion_en_francais(self):
+        # Texte français extrait d'Evangelium2 de Quad6-0 (Matthieu 26, 1 –
+        # 27, 60 d'un seul tenant), à partir du verset 26, 36.
+        e = self.verifier("2027-03-21", "Matthieu 26, 36-75; 27, 1-60", "Tempora/Quad6-0r")
+        self.assertTrue(e.texte.startswith("Alors Jésus arriva avec eux dans une "
+                                           "propriété appelée Gethsémani"))
+        self.assertTrue(e.texte.endswith("il s’en alla."))
+
+    def test_saint_martin_pape_en_francais(self):
+        # Règle française « vide C4D » (fichier inexistant) : la règle latine
+        # « vide C2b-1 » est suivie, commun lu en français.
+        self.verifier("2027-11-12", "Matthieu 16, 13-19", "Sancti/11-12")
+
     def test_saint_didace_troisieme_classe(self):
         # Surcharge de rang (calendrier de 1960) : IIIe classe, l'emporte sur
         # la messe de la Vierge le samedi (IVe classe) retenue par Missale Meum.
@@ -242,6 +255,18 @@ class TestParseur(unittest.TestCase):
         _, paragraphes, latin = m.evangile_fichier("Sancti/01-01")[:3]
         self.assertEqual(paragraphes, ["Vous êtes."])
         self.assertFalse(latin)
+
+    def test_regle_vers_fichier_inexistant_suit_le_latin(self):
+        m = self.moteur({
+            "missa/Latin/Sancti/11-12.txt": "[Rule]\nvide C2b-1;\n",
+            "missa/Francais/Sancti/11-12.txt": "[Rule]\nvide C4D\n",
+            "horas/Latin/Commune/C2b-1.txt": "[Evangelium]\nS\n!Matt 16:13-19\nVenit Jesus.\n",
+            "horas/Francais/Commune/C2b-1.txt": "[Evangelium]\nS\n!Matt 16:13-19\nJésus vint.\n",
+        })
+        r = m.evangile_fichier("Sancti/11-12")
+        self.assertEqual(r.paragraphes, ["Jésus vint."])
+        self.assertFalse(r.latin)
+        self.assertTrue(any("C4D" in i for i in m.incidents))
 
     def test_vide_relatif_au_dossier_courant(self):
         m = self.moteur({

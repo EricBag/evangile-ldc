@@ -67,6 +67,15 @@ def temps_pascal(jour: date) -> bool:
     return 0 <= (jour - paques).days <= 55
 
 
+def extraire_depuis(lignes: List[str], marqueur: str) -> Optional[List[str]]:
+    """Lignes à partir de la première occurrence de `marqueur` (incluse)."""
+    for i, ligne in enumerate(lignes):
+        pos = ligne.find(marqueur)
+        if pos >= 0:
+            return [ligne[pos:], *lignes[i + 1:]]
+    return None
+
+
 class TradiError(RuntimeError):
     """Évangile introuvable ou données incohérentes pour une date."""
 
@@ -565,6 +574,19 @@ SURCHARGES_RANG = {
     "11-13": "sancti:11-13:3:w",
 }
 
+#: Sections absentes du français mais dont le texte figure dans une section
+#: française plus longue du même fichier : (fichier, section manquante) →
+#: (section source, début du texte à extraire). Le texte court jusqu'à la fin
+#: de la section source.
+#: - Rameaux : le latin découpe la Passion de Quad6-0 en Evangelium2
+#:   (Matthieu 26, 1-35) et Evangelium3 (26, 36 – 27, 60), cette dernière
+#:   étant l'Évangile de 1962 (Quad6-0r). Le français n'a qu'Evangelium2,
+#:   qui couvre 26, 1 – 27, 60 d'un seul tenant.
+SECTIONS_FRANCAISES_EXTRAITES = {
+    ("Tempora/Quad6-0", "Evangelium3"):
+        ("Evangelium2", "Alors Jésus arriva avec eux dans une propriété appelée Gethsémani"),
+}
+
 NOMS_COMMUNE = {
     "Commune/C11": "Messe de la Sainte Vierge le samedi",
     "Commune/C10": "Messe de la Sainte Vierge le samedi",
@@ -597,6 +619,7 @@ class MesseTraditionnelle:
             raise TradiError(f"Aucun texte trouvé dans {self.racine}")
         #: Incidents de résolution rencontrés (pour le rapport annuel).
         self.incidents: List[str] = []
+        self._deja_journalises: set = set()
         #: Corrections de références (coquilles de Divinum Officium), par
         #: (fichier, langue). Voir data/tradi/corrections.json.
         self.corrections: Dict[Tuple[str, str], List[dict]] = {}
@@ -639,24 +662,48 @@ class MesseTraditionnelle:
         if f is not None and nom in f.sections:
             return self._developper(f.sections[nom], chemin, nom, langue, pile,
                                     pascal=pascal)
+        if langue == FRANCAIS and f is not None and (chemin, nom) in SECTIONS_FRANCAISES_EXTRAITES:
+            source, marqueur = SECTIONS_FRANCAISES_EXTRAITES[(chemin, nom)]
+            extrait = extraire_depuis(f.sections.get(source, []), marqueur)
+            if extrait is not None:
+                return self._developper(extrait, chemin, nom, langue, pile, pascal=pascal)
+            self._signaler(f"{chemin}:{source} (français) : début « {marqueur} » introuvable")
         if fl is not None and nom in fl.sections:
             return self._developper(fl.sections[nom], chemin, nom, langue, pile,
                                     corps_latin=True, pascal=pascal)
         for attribut in ("renvoi_global", "regle_vide"):
-            cible = None
+            cibles: List[str] = []
             for source in (f, fl):
-                if source is not None and cible is None:
+                if source is not None:
                     v = getattr(source, attribut)
-                    cible = v() if callable(v) else v
-            if cible:
-                cible = normaliser_cible(cible.split(":")[0], chemin)
+                    v = v() if callable(v) else v
+                    if v:
+                        c = normaliser_cible(v.split(":")[0], chemin)
+                        if c not in cibles:
+                            cibles.append(c)
+            for cible in cibles:
+                # Une cible qui n'existe dans aucune langue est une erreur de
+                # données (ex. « vide C4D » de plusieurs fichiers français) :
+                # on la signale et on suit la règle du fichier latin.
+                if self.fichier(LATIN, cible) is None and self.fichier(langue, cible) is None:
+                    self._signaler(f"{langue}/{chemin} : règle vers « {cible} », "
+                                   "fichier inexistant, règle latine suivie")
+                    continue
                 if pascal and attribut == "regle_vide" and cible.startswith("Commune/") \
                         and self.fichier(LATIN, cible + "p"):
                     cible += "p"
                 r = self.section(cible, nom, langue, pile, pascal)
                 if r is not None:
                     return r
+                break
         return None
+
+    def _signaler(self, message: str) -> None:
+        """Incident noté pour le rapport ; journalisé une seule fois."""
+        self.incidents.append(message)
+        if message not in self._deja_journalises:
+            self._deja_journalises.add(message)
+            log.warning(message)
 
     def _developper(self, lignes, chemin, nom, langue, pile, corps_latin=False,
                     pascal=False):

@@ -63,3 +63,34 @@ Rubrics 1960).
 
 Seen on commit 5cf0e7f0a3f2c8e1567e0bb0fef2e662250125a0.
 ```
+
+---
+
+## 3. Commun inexistant « C4D » dans trois fichiers français du sanctoral
+
+Constaté en traitant saint Martin pape (12/11/2027) : la règle française
+renvoie à un Commun qui n'existe nulle part dans le dépôt. `tradi.py` suit
+alors la règle latine (voir le rapport, « Autres incidents »).
+
+**Titre**
+
+```
+French missa: "vide C4D" points to a non-existent Commune (Sancti/07-13, 11-12, 11-23t)
+```
+
+**Corps**
+
+```
+Three French Sancti files refer to a Commune "C4D" that does not exist
+anywhere in the repository (no Commune/C4D.txt in missa/ or horas/, any
+language):
+
+- web/www/missa/Francais/Sancti/07-13.txt, line 6: "vide C4D;"
+  (Latin file: [Rank] "vide C2b-1", [Rule] "vide C4b-1")
+- web/www/missa/Francais/Sancti/11-12.txt, line 3: "vide C4D"
+  (Latin file: "vide C2b-1", St Martin I, Pope and Martyr)
+- web/www/missa/Francais/Sancti/11-23t.txt, line 3: "vide C4D;"
+  (no Latin counterpart file)
+
+Presumably the Latin targets were intended. Seen on commit
+5cf0e7f0a3f2c8e1567e0bb0fef2e662250125a0.
