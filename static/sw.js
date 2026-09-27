@@ -2,13 +2,13 @@
 // Stratégie : "network-first" sur la navigation, avec repli sur le cache hors-ligne.
 // Les requêtes API (POST) ne sont jamais mises en cache.
 
-const CACHE = "evangile-ldc-v17";
+const CACHE = "evangile-ldc-v18";
 const SHELL = [
   "/",
   "/static/styles.css?v=14",
-  "/static/icon-192.png?v=2",
-  "/static/icon-512.png?v=2",
-  "/static/manifest.json?v=3",
+  "/static/icon-192.png?v=3",
+  "/static/icon-512.png?v=3",
+  "/static/manifest.json?v=4",
   "/static/accueil_luisa_faustine.webp?v=1",
   "/static/accueil_luisa_faustine@2x.webp?v=1",
 ];

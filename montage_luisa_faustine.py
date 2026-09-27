@@ -132,14 +132,34 @@ def redimensionner(tableau, taille):
 
 # ------------------------------------------------------------- Zone protégée
 
-def zone_luisa(forme):
-    """(silhouette de Luisa, facteur 0-1 éteignant les retouches à son approche)."""
+#: Secteur de l'épaule gauche de Luisa (x0, y0, x1, y1) où le contour large
+#: englobe du ciel clair ; option `affiner` de zone_luisa().
+SECTEUR_EPAULE = (440, 290, 650, 460)
+SEUIL_CIEL_EPAULE = 150
+
+
+def zone_luisa(forme, fondu=FONDU_PROTECTION, base=None, affiner=False):
+    """(silhouette de Luisa, facteur 0-1 éteignant les retouches à son approche).
+
+    `affiner` (avec `base`) : dans le secteur de l'épaule, le ciel clair
+    compris dans le contour large est retiré de la silhouette ; l'habit sombre
+    de Luisa y reste protégé. Utile quand Faustine passe derrière l'épaule
+    (icône)."""
     h, w = forme
     masque = Image.new("L", (w, h), 0)
     ImageDraw.Draw(masque).polygon(SILHOUETTE_LUISA, fill=255)
     silhouette = np.asarray(masque) > 0
+    if affiner:
+        x0, y0, x1, y1 = SECTEUR_EPAULE
+        secteur = np.zeros_like(silhouette)
+        secteur[y0:y1, x0:x1] = True
+        ciel = ndimage.gaussian_filter(luminance(base), 1.5) > SEUIL_CIEL_EPAULE
+        silhouette = silhouette & ~(secteur & ciel)
+        # Nettoyage, puis marge de 2 px autour de l'habit.
+        silhouette = ndimage.binary_opening(silhouette, iterations=2)
+        silhouette = ndimage.binary_dilation(silhouette, iterations=2) & (np.asarray(masque) > 0)
     distance = ndimage.distance_transform_edt(~silhouette)
-    return silhouette, smoothstep(0, FONDU_PROTECTION, distance)
+    return silhouette, smoothstep(0, fondu, distance)
 
 
 # ------------------------------------------------------------- Détourage
@@ -367,16 +387,25 @@ def composer(base, yeux, rgb, alpha, protection):
 LUISA_TETE_CERCLE = ((740, 258), 118)
 
 
-def construire(verbeux=True):
+def construire(verbeux=True, position=FAUSTINE_POSITION, fondu=FONDU_PROTECTION,
+               degagement_min=DEGAGEMENT, affiner=False):
     """Image complète (PIL, 1024 × 750) et repères utiles aux recadrages :
-    {"yeux_faustine", "aureole": (centre, rayon), "luisa": (centre, rayon)}."""
+    {"yeux_faustine", "aureole": (centre, rayon), "luisa": (centre, rayon)}.
+
+    Par défaut, le montage de l'image d'accueil. `position` (yeux de
+    Faustine), `fondu` (fondu de protection autour de Luisa) et
+    `degagement_min` (None : pas de contrôle) et `affiner` (voir zone_luisa)
+    permettent d'autres placements,
+    comme celui de l'icône (make_icons.py). Luisa reste identique dans tous
+    les cas (contrôlé)."""
     base = np.asarray(Image.open(BASE).convert("RGB")).astype(float)
-    silhouette, protection = zone_luisa(base.shape[:2])
+    silhouette, protection = zone_luisa(base.shape[:2], fondu, base, affiner)
     ref = references_luisa(base)
     rgb, alpha, mesures = preparer_faustine(base, ref)
 
-    x_yeux, y_yeux = FAUSTINE_POSITION
-    assert degagement(alpha, (x_yeux, y_yeux), silhouette) >= DEGAGEMENT,         "Faustine trop proche de la silhouette de Luisa"
+    x_yeux, y_yeux = position
+    if degagement_min is not None:
+        assert degagement(alpha, (x_yeux, y_yeux), silhouette) >= degagement_min,             "Faustine trop proche de la silhouette de Luisa"
     image = composer(base, (x_yeux, y_yeux), rgb, alpha, protection)
 
     ecart = np.abs(np.rint(image) - base)[silhouette].max()
