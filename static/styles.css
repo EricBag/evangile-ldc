@@ -54,10 +54,11 @@ body {
     text-align: center;
 }
 
-/* Diptyque des deux médaillons, comme à l'accueil (make_diptyque.py) */
+/* Image d'accueil : les deux saintes dans la lumière (montage_luisa_faustine.py) */
 .login-diptyque {
     display: block;
-    width: 284px;
+    width: 360px;
+    border-radius: 6px;
     max-width: 100%;
     height: auto;
     margin: 0 auto 0.6rem;
@@ -152,10 +153,12 @@ body {
     text-align: center;
 }
 
-/* Diptyque fixe de l'accueil (image générée par make_diptyque.py) */
+/* Image d'accueil fixe : les deux saintes dans la lumière
+   (image générée par montage_luisa_faustine.py) */
 .diptyque-accueil {
     display: block;
-    width: 284px;
+    width: 360px;
+    border-radius: 6px;
     max-width: 100%;
     height: auto;
     margin: 0 auto 0.55rem;

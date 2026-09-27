@@ -9,6 +9,7 @@ app_evangile.py, seule la couche présentation change.
 from pathlib import Path
 import os
 import json
+import mimetypes
 import time
 import secrets
 import threading
@@ -243,6 +244,9 @@ def sources_demandees(brut: str) -> tuple:
 # ============================================================
 
 app = FastAPI(title="Évangile du jour")
+# Type MIME du WebP : absent de la table de certains systèmes (Windows), les
+# images d'accueil seraient sinon servies en application/octet-stream.
+mimetypes.add_type("image/webp", ".webp")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 

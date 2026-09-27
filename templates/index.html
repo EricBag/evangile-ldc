@@ -4,7 +4,7 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Évangile du jour — Miséricorde et Divine Volonté</title>
-    <link rel="stylesheet" href="/static/styles.css?v=10"/>
+    <link rel="stylesheet" href="/static/styles.css?v=11"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css"/>
 
     <link rel="apple-touch-icon" sizes="180x180" href="/static/icon-180.png">
@@ -26,11 +26,16 @@
 <body class="page-main">
     <main class="container">
 
-        <!-- Accueil : les deux saintes. Dès qu'un éclairage est demandé, le
-             portrait de la seule source interrogée prend le relais. -->
-        <img id="diptyque-accueil" class="diptyque-accueil" src="/static/diptyque.png?v=3"
-             srcset="/static/diptyque.png?v=3 1x, /static/diptyque@2x.png?v=3 2x"
-             width="284" height="124" alt="Sainte Faustine et Luisa Piccarreta"/>
+        <!-- Accueil : les deux saintes dans la lumière (montage_luisa_faustine.py).
+             Dès qu'un éclairage est demandé, le portrait de la seule source
+             interrogée prend le relais. -->
+        <picture>
+            <source type="image/webp"
+                    srcset="/static/accueil_luisa_faustine.webp?v=1 1x, /static/accueil_luisa_faustine@2x.webp?v=1 2x"/>
+            <img id="diptyque-accueil" class="diptyque-accueil" src="/static/accueil_luisa_faustine.jpg?v=1"
+                 srcset="/static/accueil_luisa_faustine.jpg?v=1 1x, /static/accueil_luisa_faustine@2x.jpg?v=1 2x"
+                 width="360" height="200" alt="Sainte Faustine et Luisa Piccarreta dans la lumière"/>
+        </picture>
         <div class="diptyque diptyque-cache" id="diptyque">
             <span class="portrait" data-source="luisa">
                 <img src="/static/luisa.jpg?v=6" alt="Luisa Piccarreta"/>
