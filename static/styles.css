@@ -232,6 +232,20 @@ body {
     font-style: italic;
 }
 
+/* Texte d'accueil : une phrase complète (plus longue que l'ancien titre),
+   puis la devise en italique, plus petite */
+.titre-accueil {
+    font-size: 1.75rem;
+    line-height: 1.22;
+    margin: 0 auto 0.45rem;
+    max-width: 22em;
+}
+
+.sous-titre-accueil {
+    font-size: 1.05rem;
+    letter-spacing: 0.3px;
+}
+
 /* Bloc date + contexte liturgique : groupés visuellement */
 .bloc-date-contexte {
     max-width: 320px;

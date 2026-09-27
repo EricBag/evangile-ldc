@@ -4,7 +4,7 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Évangile du jour — Livre du Ciel</title>
-    <link rel="stylesheet" href="/static/styles.css?v=7"/>
+    <link rel="stylesheet" href="/static/styles.css?v=8"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css"/>
 
     <link rel="apple-touch-icon" sizes="180x180" href="/static/icon-180.png">
@@ -36,8 +36,8 @@
             </span>
             {% endif %}
         </div>
-        <h1 class="titre">Évangile du jour</h1>
-        <p class="sous-titre" id="sous-titre">à la lumière du <em>Livre du Ciel</em> de Luisa Piccarreta</p>
+        <h1 class="titre titre-accueil">L'Évangile du jour à la lumière de sainte Faustine et de Luisa Piccarreta</h1>
+        <p class="sous-titre sous-titre-accueil">Miséricorde et Divine Volonté</p>
 
         <div id="ecran-choix" class="ecran-choix">
             <div class="bloc-choix">
@@ -74,7 +74,7 @@
                     <button type="button" class="option-source" role="radio"
                             data-forme="ordinaire" aria-checked="true">Ordinaire</button>
                     <button type="button" class="option-source" role="radio"
-                            data-forme="tradi" aria-checked="false">Traditionnel (1962)</button>
+                            data-forme="tradi" aria-checked="false">Traditionnel</button>
                 </div>
             </div>
             {% endif %}
@@ -227,20 +227,14 @@
         const selecteurSources = document.getElementById('selecteur-sources');
         const diptyque = document.getElementById('diptyque');
 
-        // `soustitre` contient du balisage (les titres d'œuvres sont en
-        // italique) : ce sont des constantes écrites ici, jamais une saisie.
         const LIBELLES_CORPUS = {
             'luisa': {
                 titre: 'du Livre du Ciel',
                 recherche: 'le Livre du Ciel',
-                soustitre: 'à la lumière du <em>Livre du Ciel</em> '
-                         + 'de Luisa Piccarreta',
             },
             'faustine': {
                 titre: 'du Petit Journal',
                 recherche: 'le Petit Journal',
-                soustitre: 'à la lumière du <em>Petit Journal</em> '
-                         + 'de Sainte Faustine',
             },
         };
 
@@ -289,7 +283,6 @@
                 'Recherche dans ' + libelles.recherche + '…';
             document.getElementById('titre-resultats').textContent =
                 'Extraits ' + libelles.titre;
-            document.getElementById('sous-titre').innerHTML = libelles.soustitre;
 
             // Le diptyque ne montre que les sources interrogées : un seul
             // portrait, centré, quand un seul corpus est choisi.

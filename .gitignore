@@ -44,3 +44,9 @@ desktop.ini
 *.tmp
 *.bak
 *.backup
+
+# Cache des motifs détectés par GPT (régénéré à l’usage)
+ldc_index_word/motifs/*.json
+
+# Polices téléchargées par make_diptyque.py
+.cache/
