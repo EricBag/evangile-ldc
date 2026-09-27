@@ -132,6 +132,11 @@ def _clear_cache_evangiles() -> int:
 # Logique métier (identique à app_evangile.py)
 # ============================================================
 
+#: Mention affichée sous l'Évangile AELF (forme ordinaire), comme celle de
+#: Divinum Officium pour la forme traditionnelle.
+MENTION_AELF = "Texte : AELF — traduction officielle liturgique"
+
+
 def build_evangile_state(date_iso: str, include_premiere_lecture: bool) -> dict:
     """Construit le texte pré-rempli et le contexte liturgique pour une date."""
     try:
@@ -161,7 +166,9 @@ def build_evangile_state(date_iso: str, include_premiere_lecture: bool) -> dict:
         except aelf_client.AelfError:
             pass
 
-    return {"context": context, "text": "\n\n".join(parts), "error": None}
+    texte = "\n\n".join(parts)
+    return {"context": context, "text": texte, "error": None,
+            "source": MENTION_AELF if texte else ""}
 
 
 def analyser_evangile(evangelium_text: str, dictees, paragraphes, segments,

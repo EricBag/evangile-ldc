@@ -4,7 +4,7 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Évangile du jour — Miséricorde et Divine Volonté</title>
-    <link rel="stylesheet" href="/static/styles.css?v=11"/>
+    <link rel="stylesheet" href="/static/styles.css?v=14"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css"/>
 
     <link rel="apple-touch-icon" sizes="180x180" href="/static/icon-180.png">
@@ -26,29 +26,17 @@
 <body class="page-main">
     <main class="container">
 
-        <!-- Accueil : les deux saintes dans la lumière (montage_luisa_faustine.py).
-             Dès qu'un éclairage est demandé, le portrait de la seule source
-             interrogée prend le relais. -->
+        <!-- Les deux saintes dans la lumière (montage_luisa_faustine.py),
+             à toutes les étapes, quelle que soit la source de l'éclairage. -->
         <picture>
             <source type="image/webp"
                     srcset="/static/accueil_luisa_faustine.webp?v=1 1x, /static/accueil_luisa_faustine@2x.webp?v=1 2x"/>
-            <img id="diptyque-accueil" class="diptyque-accueil" src="/static/accueil_luisa_faustine.jpg?v=1"
+            <img class="image-accueil" src="/static/accueil_luisa_faustine.jpg?v=1"
                  srcset="/static/accueil_luisa_faustine.jpg?v=1 1x, /static/accueil_luisa_faustine@2x.jpg?v=1 2x"
                  width="360" height="200" alt="Sainte Faustine et Luisa Piccarreta dans la lumière"/>
         </picture>
-        <div class="diptyque diptyque-cache" id="diptyque">
-            <span class="portrait" data-source="luisa">
-                <img src="/static/luisa.jpg?v=6" alt="Luisa Piccarreta"/>
-            </span>
-            {% if faustine_disponible %}
-            <span class="portrait" data-source="faustine">
-                <img src="/static/faustine.jpg?v=6" alt="Sainte Faustine"/>
-            </span>
-            {% endif %}
-        </div>
         <h1 class="titre titre-accueil">L'Évangile du jour</h1>
-        <p class="sous-titre-accueil">à la lumière de sainte&nbsp;Faustine et de Luisa&nbsp;Piccarreta</p>
-        <p class="devise-accueil">— Miséricorde · Divine Volonté —</p>
+        <p class="sous-titre-accueil">à la lumière de Sainte&nbsp;Faustine et de Luisa&nbsp;Piccarreta</p>
 
         <div id="ecran-choix" class="ecran-choix">
             <div class="bloc-choix">
@@ -80,11 +68,11 @@
             </div>
             {% if tradi_disponible %}
             <div class="bloc-forme" id="bloc-forme">
-                <div class="selecteur-sources" id="selecteur-forme"
+                <div class="paire-boutons" id="selecteur-forme"
                      role="radiogroup" aria-label="Forme de la messe">
-                    <button type="button" class="option-source" role="radio"
+                    <button type="button" class="bouton-principal option-forme" role="radio"
                             data-forme="ordinaire" aria-checked="true">Ordinaire</button>
-                    <button type="button" class="option-source" role="radio"
+                    <button type="button" class="bouton-principal option-forme" role="radio"
                             data-forme="tradi" aria-checked="false">Traditionnel</button>
                 </div>
             </div>
@@ -120,23 +108,14 @@
                 <span class="toggle-label">Inclure la 1<sup>ère</sup> lecture</span>
             </div>
 
-            {% if faustine_disponible %}
-            <div class="bloc-sources">
-                <p class="label-sources">Éclairer avec</p>
-                <div class="selecteur-sources" id="selecteur-sources"
-                     role="radiogroup" aria-label="Corpus à interroger">
-                    <button type="button" class="option-source" role="radio"
-                            data-sources="luisa" aria-checked="true">Luisa</button>
-                    <button type="button" class="option-source" role="radio"
-                            data-sources="faustine" aria-checked="false">Sainte Faustine</button>
-                </div>
-            </div>
-            {% endif %}
-
-            <div class="bloc-bouton">
-                <button type="button" id="bouton-eclairage" class="bouton-principal">
-                    Recevoir l'éclairage
-                </button>
+            <!-- Un bouton par corpus : chacun lance directement l'éclairage. -->
+            <div class="bloc-bouton paire-boutons">
+                <button type="button" class="bouton-principal bouton-eclairage"
+                        data-source="luisa">Éclairage Luisa</button>
+                {% if faustine_disponible %}
+                <button type="button" class="bouton-principal bouton-eclairage"
+                        data-source="faustine">Éclairage Faustine</button>
+                {% endif %}
             </div>
 
             <div id="spinner" class="spinner" style="display:none;">
@@ -219,7 +198,7 @@
         const evangileTextarea = document.getElementById('evangile-textarea');
 
         const toggleLecture = document.getElementById('toggle-1ere-lecture');
-        const boutonEclairage = document.getElementById('bouton-eclairage');
+        const boutonsEclairage = document.querySelectorAll('.bouton-eclairage');
         const spinner = document.getElementById('spinner');
         const resultats = document.getElementById('resultats');
         const listeExtraits = document.getElementById('liste-extraits');
@@ -228,15 +207,17 @@
 
         let evangileTexteBrut = '';
         let texteAuto = '';
+        // Mention de la source du texte chargé (AELF ou Divinum Officium) :
+        // affichée tant que le texte est celui reçu, sans modification.
+        let mentionCourante = '';
         let derniersResultats = null;
 
-        // --- Sélecteur de corpus (préférence mémorisée) -------------------
-        // Le Livre du Ciel seul reste le choix par défaut : c'est le
-        // comportement historique de l'application.
-        const CLE_PREF_SOURCES = 'evangile-ldc.sources';
-        const SOURCES_PAR_DEFAUT = 'luisa';
-        const selecteurSources = document.getElementById('selecteur-sources');
-        const diptyque = document.getElementById('diptyque');
+        // --- Sources de l'éclairage : un bouton par corpus -----------------
+        // Chaque bouton lance l'éclairage avec sa source ; plus de choix à
+        // mémoriser. L'ancienne préférence (sélecteur retiré) est effacée.
+        try {
+            localStorage.removeItem('evangile-ldc.sources');
+        } catch (e) { /* stockage indisponible : rien à effacer */ }
 
         const LIBELLES_CORPUS = {
             'luisa': {
@@ -265,57 +246,13 @@
             } catch (e) { /* préférence non mémorisable : sans conséquence */ }
         }
 
-        function sourcesActives() {
-            if (!selecteurSources) return SOURCES_PAR_DEFAUT;
-            const choisi = selecteurSources.querySelector('[aria-checked="true"]');
-            return choisi ? choisi.dataset.sources : SOURCES_PAR_DEFAUT;
-        }
-
-        function appliquerSources(valeur, memoriser) {
-            if (!selecteurSources) return;
-            const options = selecteurSources.querySelectorAll('.option-source');
-            let trouve = false;
-            options.forEach((o) => {
-                const actif = o.dataset.sources === valeur;
-                o.setAttribute('aria-checked', actif ? 'true' : 'false');
-                o.classList.toggle('option-source-active', actif);
-                if (actif) trouve = true;
-            });
-            if (!trouve) {
-                // Préférence inconnue ou retirée (ancien choix « les deux ») :
-                // on revient au Livre du Ciel et on corrige la préférence.
-                appliquerSources(SOURCES_PAR_DEFAUT, true);
-                return;
-            }
-            if (memoriser) ecrirePreference(CLE_PREF_SOURCES, valeur);
-
-            const libelles = LIBELLES_CORPUS[valeur] || LIBELLES_CORPUS[SOURCES_PAR_DEFAUT];
+        function appliquerSource(valeur) {
+            // Libellés d'attente et de résultats : ceux de la source interrogée.
+            const libelles = LIBELLES_CORPUS[valeur] || LIBELLES_CORPUS.luisa;
             document.getElementById('spinner-texte').textContent =
                 'Recherche dans ' + libelles.recherche + '…';
             document.getElementById('titre-resultats').textContent =
                 'Extraits ' + libelles.titre;
-
-            // Le diptyque ne montre que les sources interrogées : un seul
-            // portrait, centré, quand un seul corpus est choisi.
-            const actives = valeur.split(',');
-            diptyque.querySelectorAll('.portrait').forEach((p) => {
-                p.classList.toggle('portrait-masque',
-                                   actives.indexOf(p.dataset.source) === -1);
-            });
-        }
-
-        if (selecteurSources) {
-            // Le placement initial ne doit pas s'animer : la transition n'a de
-            // sens que lorsque l'utilisateur change lui-même de corpus.
-            diptyque.classList.add('diptyque-sans-transition');
-            appliquerSources(lirePreference(CLE_PREF_SOURCES, SOURCES_PAR_DEFAUT), false);
-            requestAnimationFrame(() => {
-                diptyque.classList.remove('diptyque-sans-transition');
-            });
-            selecteurSources.addEventListener('click', (evt) => {
-                const option = evt.target.closest('.option-source');
-                if (option) appliquerSources(option.dataset.sources, true);
-            });
         }
 
         // --- Forme de la messe : Ordinaire (AELF) ou Traditionnel (1962) ---
@@ -336,14 +273,14 @@
 
         function appliquerForme(valeur, memoriser) {
             if (!selecteurForme) return;
-            const options = selecteurForme.querySelectorAll('.option-source');
+            const options = selecteurForme.querySelectorAll('.option-forme');
             if (![...options].some((o) => o.dataset.forme === valeur)) {
                 valeur = FORME_PAR_DEFAUT;
             }
             options.forEach((o) => {
                 const actif = o.dataset.forme === valeur;
                 o.setAttribute('aria-checked', actif ? 'true' : 'false');
-                o.classList.toggle('option-source-active', actif);
+                o.classList.toggle('option-forme-active', actif);
             });
             if (memoriser) ecrirePreference(CLE_PREF_FORME, valeur);
             majToggleLecture();
@@ -358,21 +295,18 @@
         if (selecteurForme) {
             appliquerForme(lirePreference(CLE_PREF_FORME, FORME_PAR_DEFAUT), false);
             selecteurForme.addEventListener('click', async (evt) => {
-                const option = evt.target.closest('.option-source');
+                const option = evt.target.closest('.option-forme');
                 if (!option || option.dataset.forme === formeActive()) return;
                 appliquerForme(option.dataset.forme, true);
                 if (modeEvangileDuJour) await rafraichirEvangile(true);
             });
         }
 
-        // En-tête : diptyque fixe à l'accueil ; pendant et après l'éclairage,
-        // seul le portrait de la source choisie (animé au changement).
-        const diptyqueAccueil = document.getElementById('diptyque-accueil');
-
-        function afficherPortraitSource() {
-            if (!diptyqueAccueil || diptyqueAccueil.hidden) return;
-            diptyqueAccueil.hidden = true;
-            diptyque.classList.remove('diptyque-cache');
+        function majMention() {
+            const afficher = modeEvangileDuJour && mentionCourante
+                && evangileTexteBrut.trim() === texteAuto.trim();
+            mentionSource.textContent = afficher ? mentionCourante : '';
+            mentionSource.style.display = afficher ? '' : 'none';
         }
 
         function basculerVersEvangile() {
@@ -393,6 +327,7 @@
             modeEvangileDuJour = false;
             basculerVersEvangile();
             if (blocForme) blocForme.style.display = 'none';
+            mentionCourante = '';
             mentionSource.style.display = 'none';
             contexteEl.style.display = 'none';
             incipitEl.style.display = 'none';
@@ -431,12 +366,7 @@
                     ? (data.error || '')
                     : 'Lectures AELF indisponibles pour cette date.';
                 erreurEl.style.display = data.error ? '' : 'none';
-                if (forme === 'tradi' && data.source && !data.error) {
-                    mentionSource.textContent = data.source;
-                    mentionSource.style.display = '';
-                } else {
-                    mentionSource.style.display = 'none';
-                }
+                mentionCourante = (!data.error && data.text && data.source) ? data.source : '';
 
                 if (forceReplace || evangileTexteBrut === texteAuto) {
                     evangileTexteBrut = data.text;
@@ -444,6 +374,7 @@
                 texteAuto = data.text;
                 evangileTextarea.value = evangileTexteBrut;
                 rafraichirRendu();
+                majMention();
             } catch (e) {
                 console.error('Erreur fetch évangile:', e);
             }
@@ -524,6 +455,7 @@
             if (evangileTextarea.value.trim() !== evangileTexteBrut.trim()) {
                 evangileTexteBrut = evangileTextarea.value;
             }
+            majMention();
             if (evangileTextarea.value.trim()) {
                 rafraichirRendu();
             }
@@ -538,7 +470,11 @@
 
         toggleLecture.addEventListener('change', () => rafraichirEvangile(false));
 
-        boutonEclairage.addEventListener('click', async () => {
+        boutonsEclairage.forEach((bouton) => {
+            bouton.addEventListener('click', () => lancerEclairage(bouton.dataset.source));
+        });
+
+        async function lancerEclairage(source) {
             const texte = (evangileTextarea.style.display === '' ? evangileTextarea.value : evangileTexteBrut).trim();
             if (!texte) {
                 alert("Veuillez d'abord saisir ou charger un texte d'évangile.");
@@ -550,13 +486,13 @@
             }
             resultats.style.display = 'none';
             spinner.style.display = 'flex';
-            boutonEclairage.disabled = true;
-            afficherPortraitSource();
+            boutonsEclairage.forEach((b) => { b.disabled = true; });
+            appliquerSource(source);
 
             try {
                 const formData = new FormData();
                 formData.append('evangile_text', texte);
-                formData.append('sources', sourcesActives());
+                formData.append('sources', source);
                 const response = await fetch('/api/eclairage', {
                     method: 'POST',
                     body: formData,
@@ -572,9 +508,9 @@
                 alert('Erreur : ' + e.message);
             } finally {
                 spinner.style.display = 'none';
-                boutonEclairage.disabled = false;
+                boutonsEclairage.forEach((b) => { b.disabled = false; });
             }
-        });
+        }
 
         function afficherResultats(passages, fromCache) {
             cacheIndicator.style.display = fromCache ? '' : 'none';

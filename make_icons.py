@@ -1,10 +1,10 @@
 """
-make_icons.py — Génère les icônes PWA depuis static/luisa.jpg
+make_icons.py — Génère les icônes PWA depuis static/luisa_icon.jpg
 =============================================================
 Crée 3 PNG carrés : portrait de Luisa recadré en cercle sur fond
 ivoire (#fdfaf2), photo occupant ~80 % (marge ivoire autour).
 
-À exécuter au besoin (après changement de luisa.jpg) :
+À exécuter au besoin (après changement de luisa_icon.jpg) :
     .venv/Scripts/python.exe make_icons.py
 """
 from PIL import Image, ImageDraw

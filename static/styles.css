@@ -54,8 +54,8 @@ body {
     text-align: center;
 }
 
-/* Image d'accueil : les deux saintes dans la lumière (montage_luisa_faustine.py) */
-.login-diptyque {
+/* Image des deux saintes dans la lumière (montage_luisa_faustine.py) */
+.login-image {
     display: block;
     width: 360px;
     border-radius: 6px;
@@ -153,9 +153,9 @@ body {
     text-align: center;
 }
 
-/* Image d'accueil fixe : les deux saintes dans la lumière
+/* Image des deux saintes dans la lumière, fixe à toutes les étapes
    (image générée par montage_luisa_faustine.py) */
-.diptyque-accueil {
+.image-accueil {
     display: block;
     width: 360px;
     border-radius: 6px;
@@ -164,62 +164,6 @@ body {
     margin: 0 auto 0.55rem;
 }
 
-.diptyque-accueil[hidden],
-.diptyque.diptyque-cache {
-    display: none;
-}
-
-/* Portrait de la source interrogée, affiché pendant et après l'éclairage */
-.diptyque {
-    --largeur-portrait: 138px;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    /* La hauteur reste constante quand un portrait s'efface : sans cela le
-       titre remonterait d'un coup au changement de corpus. */
-    min-height: calc(var(--largeur-portrait) * 1.5);
-    margin-bottom: 0.55rem;
-}
-
-.portrait {
-    flex: 0 0 auto;
-    width: var(--largeur-portrait);
-    margin: 0 6px;
-    border: 1px solid #c9b074;
-    border-radius: 6px;
-    overflow: hidden;
-    background-color: #fdfaf2;
-    transition: width 0.38s ease, margin 0.38s ease, opacity 0.38s ease,
-                transform 0.38s ease, border-width 0.38s ease;
-}
-
-.portrait img {
-    display: block;
-    width: 100%;
-    aspect-ratio: 2 / 3;
-    object-fit: cover;
-    object-position: center;
-}
-
-/* Portrait d'une source non interrogée : replié sur lui-même, pas masqué
-   d'un `display: none` qui empêcherait toute transition. */
-.portrait-masque {
-    width: 0;
-    margin: 0;
-    border-width: 0;
-    opacity: 0;
-    transform: scale(0.9);
-}
-
-.diptyque-sans-transition .portrait {
-    transition: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .portrait {
-        transition: none;
-    }
-}
 
 /* Titre */
 .titre {
@@ -247,7 +191,7 @@ body {
     font-style: italic;
 }
 
-/* Texte d'accueil, sur trois niveaux : titre, ligne en italique, devise */
+/* Texte d'accueil : titre, puis ligne en italique */
 .titre-accueil {
     font-size: 1.9rem;
     font-weight: 500;
@@ -261,18 +205,8 @@ body {
     font-weight: 400;
     line-height: 1.35;
     color: #4a3820;
-    margin: 0 auto;
+    margin: 0 auto 2rem;
     max-width: 24em;
-}
-
-/* Devise : petites capitales dorées (#8a6d2f, contraste 4,67:1 sur #fdfaf2) */
-.devise-accueil {
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: 0.9rem;
-    font-variant: small-caps;
-    letter-spacing: 2px;
-    color: #8a6d2f;
-    margin: 0.75rem 0 2rem;
 }
 
 /* Bloc date + contexte liturgique : groupés visuellement */
@@ -513,8 +447,7 @@ body {
     color: #3a2c18;
 }
 
-/* Selecteur de forme (Ordinaire / Traditionnel 1962), meme dessin que le
-   selecteur de corpus */
+/* Bloc de la paire Ordinaire / Traditionnel */
 .bloc-forme {
     margin: 0 0 1.2rem;
     text-align: center;
@@ -528,57 +461,6 @@ body {
     text-align: center;
     margin: -0.6rem 0 1.6rem;
     line-height: 1.45;
-}
-
-/* Selecteur de corpus */
-.bloc-sources {
-    margin: 0 0 1.75rem;
-    text-align: center;
-}
-
-.label-sources {
-    font-family: 'Inter', sans-serif;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #4a3820;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    margin: 0 0 0.7rem;
-}
-
-.selecteur-sources {
-    display: inline-flex;
-    border: 1px solid rgba(184, 159, 122, 0.55);
-    border-radius: 22px;
-    overflow: hidden;
-    background: #fefdf8;
-}
-
-.option-source {
-    background: transparent;
-    border: none;
-    border-right: 1px solid rgba(184, 159, 122, 0.35);
-    padding: 0.5rem 1.15rem;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #5a4a30;
-    cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.option-source:last-child {
-    border-right: none;
-}
-
-.option-source:hover:not(.option-source-active) {
-    background-color: rgba(201, 176, 116, 0.14);
-}
-
-.option-source-active {
-    background-color: #c9b074;
-    color: #ffffff;
-    font-weight: 600;
 }
 
 .auteur-extrait {
@@ -619,6 +501,62 @@ body {
 .bouton-principal:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* Paires de boutons (Ordinaire / Traditionnel, Éclairage Luisa / Faustine) :
+   même forme que le bouton principal, même largeur, deux par deux, côte à
+   côte jusqu'à 340 px de large ; empilées en dessous. Marge intérieure et
+   espacement des lettres resserrés, à l'identique pour les quatre boutons,
+   pour que « Éclairage Faustine » tienne à 340 px. */
+.paire-boutons {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.paire-boutons .bouton-principal {
+    flex: 1 1 0;
+    min-width: auto;
+    max-width: 13rem;
+    padding: 0.65rem 0.55rem;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+}
+
+@media (max-width: 339px) {
+    .paire-boutons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .paire-boutons .bouton-principal {
+        flex: none;
+        width: 100%;
+    }
+}
+
+/* Éclairage : contour seul, plein au survol et au toucher. */
+.bouton-eclairage:active:not(:disabled) {
+    background-color: #5a7a99;
+    color: white;
+    box-shadow: 0 4px 12px rgba(90, 122, 153, 0.2);
+}
+
+/* Forme : option choisie pleine, l'autre en contour seul (sans remplissage
+   au survol, pour ne pas la confondre avec l'option choisie). */
+.option-forme-active,
+.option-forme-active:hover:not(:disabled) {
+    background-color: #5a7a99;
+    color: white;
+    box-shadow: 0 4px 12px rgba(90, 122, 153, 0.2);
+    transform: none;
+}
+
+.option-forme:hover:not(.option-forme-active) {
+    background-color: transparent;
+    color: #5a7a99;
+    box-shadow: none;
+    transform: none;
 }
 
 /* Spinner */
@@ -856,7 +794,8 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    margin-bottom: 0.2rem;
+    /* Espace net entre la date et le sélecteur Ordinaire / Traditionnel */
+    margin-bottom: 1.4rem;
 }
 
 .date-affichee {
@@ -1166,10 +1105,6 @@ body {
 @media (max-width: 640px) {
     .container {
         padding: 2rem 1.25rem 3rem;
-    }
-
-    .diptyque {
-        --largeur-portrait: 118px;
     }
 
     .titre {
