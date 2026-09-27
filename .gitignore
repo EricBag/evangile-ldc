@@ -48,5 +48,8 @@ desktop.ini
 # Cache des motifs détectés par GPT (régénéré à l’usage)
 ldc_index_word/motifs/*.json
 
-# Polices téléchargées par make_diptyque.py
+# Polices téléchargées par les scripts d'images
 .cache/
+
+# Essais d'images (planches comparatives), jamais versionnés ni déployés
+static/_essais/

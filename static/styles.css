@@ -54,11 +54,10 @@ body {
     text-align: center;
 }
 
-/* Même portrait que celui du diptyque : vertical, donc plus étroit que
-   l'ancienne photo en paysage, pour ne pas occuper tout l'écran de connexion. */
+/* Diptyque des deux médaillons, comme à l'accueil (make_diptyque.py) */
 .login-diptyque {
     display: block;
-    width: 292px;
+    width: 284px;
     max-width: 100%;
     height: auto;
     margin: 0 auto 0.6rem;
@@ -153,11 +152,10 @@ body {
     text-align: center;
 }
 
-/* Diptyque des portraits (Luisa, Sainte Faustine) */
 /* Diptyque fixe de l'accueil (image générée par make_diptyque.py) */
 .diptyque-accueil {
     display: block;
-    width: 292px;
+    width: 284px;
     max-width: 100%;
     height: auto;
     margin: 0 auto 0.55rem;
@@ -168,6 +166,7 @@ body {
     display: none;
 }
 
+/* Portrait de la source interrogée, affiché pendant et après l'éclairage */
 .diptyque {
     --largeur-portrait: 138px;
     display: flex;
@@ -245,18 +244,32 @@ body {
     font-style: italic;
 }
 
-/* Texte d'accueil : une phrase complète (plus longue que l'ancien titre),
-   puis la devise en italique, plus petite */
+/* Texte d'accueil, sur trois niveaux : titre, ligne en italique, devise */
 .titre-accueil {
-    font-size: 1.75rem;
-    line-height: 1.22;
-    margin: 0 auto 0.45rem;
-    max-width: 22em;
+    font-size: 1.9rem;
+    font-weight: 500;
+    margin: 0 0 0.35rem;
 }
 
 .sous-titre-accueil {
-    font-size: 1.05rem;
-    letter-spacing: 0.3px;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.1rem;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.35;
+    color: #4a3820;
+    margin: 0 auto;
+    max-width: 24em;
+}
+
+/* Devise : petites capitales dorées (#8a6d2f, contraste 4,67:1 sur #fdfaf2) */
+.devise-accueil {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 0.9rem;
+    font-variant: small-caps;
+    letter-spacing: 2px;
+    color: #8a6d2f;
+    margin: 0.75rem 0 2rem;
 }
 
 /* Bloc date + contexte liturgique : groupés visuellement */

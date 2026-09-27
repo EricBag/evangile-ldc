@@ -8,8 +8,8 @@ make_diptyque.py — Génère l'image d'accueil : deux médaillons côte à côt
 Les deux portraits reçoivent le même traitement : recadrage carré en buste,
 à la même échelle de visage ; harmonisation de luminosité et de saturation
 (fonctions de `make_portraits.py`) ; découpe ronde lissée ; bordure fine
-dorée (#c9b074, celle des portraits de l'application). Le nom de chaque sainte
-est écrit dessous en Cormorant Garamond, la police des titres de l'app.
+dorée (#c9b074, celle des portraits de l'application). L'image ne contient
+aucun texte : les noms figurent dans la page (texte d'accueil, attribut alt).
 
 Sources :
     Sainte Faustine  data/faustine/sfi.jpg    (722 × 423)
@@ -17,15 +17,11 @@ Sources :
                      icônes PWA, plus grand et mieux cadré que logo.jpg.
 Les icônes PWA ne sont pas touchées (voir make_icons.py).
 
-La police (licence SIL OFL) est téléchargée au premier lancement depuis le
-dépôt Google Fonts dans .cache/fonts/ (ignoré par Git).
-
     python make_diptyque.py
 """
 import os
-import urllib.request
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 from make_portraits import harmoniser, luminance, saturation
 
@@ -36,12 +32,9 @@ SORTIE = os.path.join(RACINE, "static")
 DIAMETRE = 116          # médaillon
 BORDURE = 1.5           # épaisseur de la bordure
 ECART = 44              # espace entre les deux médaillons
-MARGE = 8               # marge autour de l'ensemble
-TAILLE_NOM = 17         # corps du nom
-ESPACE_NOM = 7          # entre le médaillon et le nom
+MARGE = 4               # marge autour de l'ensemble
 
 OR = (201, 176, 116, 255)           # #c9b074
-ENCRE = (74, 56, 32, 255)           # #4a3820, couleur des sous-titres
 
 #: Recadrages carrés (x0, y0, x1, y1), en buste, réglés à l'œil pour que les
 #: deux visages aient la même taille dans le médaillon (le voile de Sainte
@@ -51,21 +44,7 @@ PORTRAITS = [
     ("Luisa Piccarreta", ("static", "luisa_icon.jpg"), (0, 0, 388, 388)),
 ]
 
-POLICE_URL = ("https://raw.githubusercontent.com/google/fonts/main/ofl/"
-              "cormorantgaramond/CormorantGaramond%5Bwght%5D.ttf")
-POLICE = os.path.join(RACINE, ".cache", "fonts", "CormorantGaramond[wght].ttf")
-GRAISSE = 500           # comme les titres de l'app (font-weight: 500)
 SURECHANTILLONNAGE = 4  # découpe ronde et bordure dessinées en 4x puis réduites
-
-
-def police(taille):
-    if not os.path.exists(POLICE):
-        os.makedirs(os.path.dirname(POLICE), exist_ok=True)
-        print("[..] Téléchargement de Cormorant Garamond (OFL)")
-        urllib.request.urlretrieve(POLICE_URL, POLICE)
-    f = ImageFont.truetype(POLICE, taille)
-    f.set_variation_by_axes([GRAISSE])
-    return f
 
 
 def medaillon(source, boite, diametre, bordure):
@@ -89,20 +68,10 @@ def medaillon(source, boite, diametre, bordure):
 def composer(echelle):
     d = DIAMETRE * echelle
     marge, ecart = MARGE * echelle, ECART * echelle
-    fonte = police(TAILLE_NOM * echelle)
-    hauteur_nom = fonte.getbbox("Ag")[3]
-    largeur = 2 * d + ecart + 2 * marge
-    hauteur = marge + d + ESPACE_NOM * echelle + hauteur_nom + marge
-    toile = Image.new("RGBA", (largeur, hauteur), (0, 0, 0, 0))
-    dessin = ImageDraw.Draw(toile)
-
+    toile = Image.new("RGBA", (2 * d + ecart + 2 * marge, d + 2 * marge), (0, 0, 0, 0))
     for i, (nom, source, boite) in enumerate(PORTRAITS):
         disque, portrait = medaillon(source, boite, d, BORDURE * echelle)
-        x = marge + i * (d + ecart)
-        toile.alpha_composite(disque, (x, marge))
-        centre = x + d / 2
-        dessin.text((centre, marge + d + ESPACE_NOM * echelle), nom,
-                    font=fonte, fill=ENCRE, anchor="mt")
+        toile.alpha_composite(disque, (marge + i * (d + ecart), marge))
         if echelle == 1:
             print("[OK] %-17s luminance %.1f  saturation %.1f"
                   % (nom, luminance(portrait), saturation(portrait)))

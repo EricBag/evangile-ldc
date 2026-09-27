@@ -2,17 +2,17 @@
 // Stratégie : "network-first" sur la navigation, avec repli sur le cache hors-ligne.
 // Les requêtes API (POST) ne sont jamais mises en cache.
 
-const CACHE = "evangile-ldc-v10";
+const CACHE = "evangile-ldc-v11";
 const SHELL = [
   "/",
-  "/static/styles.css?v=9",
+  "/static/styles.css?v=10",
   "/static/luisa.jpg?v=6",
   "/static/faustine.jpg?v=6",
   "/static/icon-192.png",
   "/static/icon-512.png",
   "/static/manifest.json?v=2",
-  "/static/diptyque.png?v=1",
-  "/static/diptyque@2x.png?v=1",
+  "/static/diptyque.png?v=2",
+  "/static/diptyque@2x.png?v=2",
 ];
 
 self.addEventListener("install", (event) => {
@@ -36,6 +36,8 @@ self.addEventListener("fetch", (event) => {
 
   // Ne gérer que les GET ; laisser passer les POST (API) au réseau directement.
   if (req.method !== "GET") return;
+  // Fichiers d'essai (static/_essais/, hors dépôt) : jamais mis en cache.
+  if (new URL(req.url).pathname.startsWith("/static/_essais/")) return;
 
   event.respondWith(
     fetch(req)
