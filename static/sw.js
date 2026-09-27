@@ -2,7 +2,7 @@
 // Stratégie : "network-first" sur la navigation, avec repli sur le cache hors-ligne.
 // Les requêtes API (POST) ne sont jamais mises en cache.
 
-const CACHE = "evangile-ldc-v11";
+const CACHE = "evangile-ldc-v12";
 const SHELL = [
   "/",
   "/static/styles.css?v=10",
@@ -11,8 +11,8 @@ const SHELL = [
   "/static/icon-192.png",
   "/static/icon-512.png",
   "/static/manifest.json?v=2",
-  "/static/diptyque.png?v=2",
-  "/static/diptyque@2x.png?v=2",
+  "/static/diptyque.png?v=3",
+  "/static/diptyque@2x.png?v=3",
 ];
 
 self.addEventListener("install", (event) => {
