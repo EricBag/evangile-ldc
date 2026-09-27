@@ -102,6 +102,27 @@ class TestNormalisationDesSources(unittest.TestCase):
         self.assertEqual(L.normalize_sources(["inconnue"]), L.SOURCES_CONNUES)
 
 
+class TestSourceEclairage(unittest.TestCase):
+    """Source unique demandée par l'application (option « les deux » retirée)."""
+
+    def test_source_seule_conservee(self):
+        self.assertEqual(L.source_eclairage(["luisa"]), (L.SOURCE_LUISA,))
+        self.assertEqual(L.source_eclairage(["faustine"]), (L.SOURCE_FAUSTINE,))
+
+    def test_les_deux_ramenees_a_luisa(self):
+        self.assertEqual(L.source_eclairage(["luisa", "faustine"]), (L.SOURCE_LUISA,))
+        self.assertEqual(L.source_eclairage(["faustine", "luisa"]), (L.SOURCE_LUISA,))
+
+    def test_demande_vide_ou_inconnue_ramenee_a_luisa(self):
+        self.assertEqual(L.source_eclairage(None), (L.SOURCE_LUISA,))
+        self.assertEqual(L.source_eclairage([]), (L.SOURCE_LUISA,))
+        self.assertEqual(L.source_eclairage(["inconnue"]), (L.SOURCE_LUISA,))
+
+    def test_source_non_ingeree_ramenee_a_luisa(self):
+        self.assertEqual(L.source_eclairage(["faustine"], disponibles=(L.SOURCE_LUISA,)),
+                         (L.SOURCE_LUISA,))
+
+
 class TestSelectionParSource(BaseCorpus):
 
     def test_indices_par_source(self):

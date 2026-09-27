@@ -118,8 +118,6 @@
                             data-sources="luisa" aria-checked="true">Luisa</button>
                     <button type="button" class="option-source" role="radio"
                             data-sources="faustine" aria-checked="false">Sainte Faustine</button>
-                    <button type="button" class="option-source" role="radio"
-                            data-sources="luisa,faustine" aria-checked="false">Les deux</button>
                 </div>
             </div>
             {% endif %}
@@ -244,13 +242,6 @@
                 soustitre: 'à la lumière du <em>Petit Journal</em> '
                          + 'de Sainte Faustine',
             },
-            'luisa,faustine': {
-                titre: 'du Livre du Ciel et du Petit Journal',
-                recherche: 'les deux textes',
-                soustitre: 'à la lumière du <em>Livre du Ciel</em> '
-                         + 'de Luisa Piccarreta et du <em>Petit Journal</em> '
-                         + 'de Sainte Faustine',
-            },
         };
 
         function lirePreference(cle, valeurParDefaut) {
@@ -286,7 +277,9 @@
                 if (actif) trouve = true;
             });
             if (!trouve) {
-                appliquerSources(SOURCES_PAR_DEFAUT, false);
+                // Préférence inconnue ou retirée (ancien choix « les deux ») :
+                // on revient au Livre du Ciel et on corrige la préférence.
+                appliquerSources(SOURCES_PAR_DEFAUT, true);
                 return;
             }
             if (memoriser) ecrirePreference(CLE_PREF_SOURCES, valeur);

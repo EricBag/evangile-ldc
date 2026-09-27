@@ -55,8 +55,9 @@ DATA_DIR = BASE_DIR / "data" / "tradi"
 FRANCAIS = "Francais"
 LATIN = "Latin"
 
-MENTION_SOURCE = ("Missel romain de 1962 — texte : Divinum Officium "
-                  "(divinumofficium.com), traduction non identifiée")
+#: Mention affichée sous l'Évangile. L'origine de la traduction française
+#: (non identifiée) est documentée dans data/tradi/SOURCE.md seulement.
+MENTION_SOURCE = "Texte : Divinum Officium — missel romain de 1962"
 MENTION_LATIN = "Traduction française indisponible : texte latin"
 
 
@@ -497,7 +498,7 @@ class Evangile:
     def mention(self) -> str:
         if self.latin:
             return f"{MENTION_SOURCE}. {MENTION_LATIN}."
-        return MENTION_SOURCE + "."
+        return MENTION_SOURCE
 
 
 class ResultatEvangile(NamedTuple):
@@ -1027,7 +1028,7 @@ class MesseTraditionnelle:
         le moteur d'éclairage l'analyse donc sans distinction.
         """
         etat = {"context": "", "text": "", "error": None, "messe": "",
-                "reference": "", "source": MENTION_SOURCE + ".", "latin": False}
+                "reference": "", "source": MENTION_SOURCE, "latin": False}
         try:
             e = self.evangile_du_jour(date.fromisoformat(date_iso))
         except Exception as exc:  # une date sans Évangile ne doit pas faire échouer la requête

@@ -570,6 +570,21 @@ def normalize_sources(sources: Optional[Sequence[str]]) -> Tuple[str, ...]:
     return retenues or SOURCES_CONNUES
 
 
+def source_eclairage(demandees: Optional[Sequence[str]],
+                     disponibles: Sequence[str] = SOURCES_CONNUES) -> Tuple[str, ...]:
+    """Source unique interrogée par l'application pour un éclairage.
+
+    L'éclairage mixte (« les deux ») est retiré de l'interface : une demande
+    de plusieurs sources, d'une source inconnue ou non ingérée retombe sur le
+    Livre du Ciel, sans erreur (le client peut avoir mémorisé un ancien choix).
+    """
+    retenues = [s for s in SOURCES_CONNUES
+                if s in set(demandees or ()) and s in set(disponibles)]
+    if len(retenues) != 1:
+        return (SOURCE_LUISA,)
+    return (retenues[0],)
+
+
 def select_indices_by_source(segments: List[Segment],
                              sources: Optional[Sequence[str]] = None
                              ) -> np.ndarray:

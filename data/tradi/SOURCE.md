@@ -49,8 +49,10 @@ d'identifier la traduction utilisée pour les Évangiles) :
 - `web/www/missa/source.txt` ne documente que les sources latines et
   anglaises.
 
-La mention affichée dans l'application est donc : « Missel romain de 1962 —
-texte : Divinum Officium (divinumofficium.com), traduction non identifiée ».
+Cette information reste consignée ici uniquement : la mention affichée dans
+l'application est « Texte : Divinum Officium — missel romain de 1962 »,
+complétée de « Traduction française indisponible : texte latin » les jours
+où un texte retombe sur le latin.
 
 ## Corrections locales
 

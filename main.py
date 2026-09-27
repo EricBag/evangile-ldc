@@ -62,9 +62,9 @@ from ldc_proZ import (
     evangile_hash,
     explain_passage_matches,
     group_segments_by_unit,
-    normalize_sources,
     rerank_with_gpt,
     score_segments_with_keywords,
+    source_eclairage,
 )
 
 # ============================================================
@@ -229,16 +229,14 @@ except Exception as exc:
 
 
 def sources_demandees(brut: str) -> tuple:
-    """Traduit le paramètre `sources` de la requête en tuple validé.
+    """Traduit le paramètre `sources` de la requête en source unique.
 
-    Une source demandée mais non ingérée est ignorée plutôt que de faire
-    échouer la requête : le client peut avoir mémorisé un choix devenu caduc.
+    Une seule source par éclairage : « luisa,faustine », une valeur inconnue
+    ou une source non ingérée donnent le Livre du Ciel, sans erreur (le client
+    peut avoir mémorisé un choix devenu caduc).
     """
     demandees = [s.strip() for s in (brut or "").split(",") if s.strip()]
-    retenues = [s for s in demandees if s in SOURCES_DISPONIBLES]
-    if not retenues:
-        return (SOURCE_LUISA,)
-    return normalize_sources(retenues)
+    return source_eclairage(demandees, SOURCES_DISPONIBLES)
 
 # ============================================================
 # Application FastAPI

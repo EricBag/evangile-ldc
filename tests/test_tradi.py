@@ -179,8 +179,15 @@ class TestDatesDeReference(unittest.TestCase):
         self.assertIsNone(etat["error"])
         self.assertTrue(etat["text"].startswith("ÉVANGILE (Matthieu 22, 1-14)\n\n"))
         self.assertEqual(etat["messe"], "XIXe dimanche après la Pentecôte")
-        self.assertIn("traduction non identifiée", etat["source"])
+        self.assertEqual(etat["source"], "Texte : Divinum Officium — missel romain de 1962")
+        self.assertNotIn("traduction", etat["source"].lower())
         self.assertFalse(etat["latin"])
+
+    def test_mention_repli_latin(self):
+        e = tradi.Evangile(date="2027-01-01", office="", fichier="", nom_messe="",
+                           reference="", reference_brute="", texte="", latin=True)
+        self.assertEqual(e.mention, "Texte : Divinum Officium — missel romain de 1962. "
+                                    "Traduction française indisponible : texte latin.")
 
     def test_etat_pour_api_erreur(self):
         with mock.patch.object(self.moteur, "evangile_du_jour",
