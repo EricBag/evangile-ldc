@@ -362,7 +362,14 @@ def composer(base, yeux, rgb, alpha, protection):
     return sortie
 
 
-def main():
+#: Tête de Luisa avec le rayonnement proche (cercle englobant), pour les
+#: recadrages qui doivent la garder entière (icônes, voir make_icons.py).
+LUISA_TETE_CERCLE = ((740, 258), 118)
+
+
+def construire(verbeux=True):
+    """Image complète (PIL, 1024 × 750) et repères utiles aux recadrages :
+    {"yeux_faustine", "aureole": (centre, rayon), "luisa": (centre, rayon)}."""
     base = np.asarray(Image.open(BASE).convert("RGB")).astype(float)
     silhouette, protection = zone_luisa(base.shape[:2])
     ref = references_luisa(base)
@@ -373,16 +380,29 @@ def main():
     image = composer(base, (x_yeux, y_yeux), rgb, alpha, protection)
 
     ecart = np.abs(np.rint(image) - base)[silhouette].max()
-    print("[OK] yeux de Faustine en (%d, %d) ; dégagement %.0f px ; écart max dans la "
-          "silhouette de Luisa = %.0f" % (x_yeux, y_yeux,
-                                           degagement(alpha, (x_yeux, y_yeux), silhouette), ecart))
-    print("     visage  Faustine %.1f / Luisa %.1f" % (mesures["visage"], ref["visage"]))
-    print("     blanc   Faustine %.1f / Luisa %.1f" % (mesures["blanc"], ref["blanc"]))
-    print("     détail  Faustine %.2f / Luisa %.2f (flou %.1f)"
-          % (mesures["detail"], ref["detail"], mesures["flou"]))
+    if verbeux:
+        print("[OK] yeux de Faustine en (%d, %d) ; dégagement %.0f px ; écart max dans la "
+              "silhouette de Luisa = %.0f" % (x_yeux, y_yeux,
+                                               degagement(alpha, (x_yeux, y_yeux), silhouette), ecart))
+        print("     visage  Faustine %.1f / Luisa %.1f" % (mesures["visage"], ref["visage"]))
+        print("     blanc   Faustine %.1f / Luisa %.1f" % (mesures["blanc"], ref["blanc"]))
+        print("     détail  Faustine %.2f / Luisa %.2f (flou %.1f)"
+              % (mesures["detail"], ref["detail"], mesures["flou"]))
     assert ecart == 0, "la figure de Luisa a été modifiée"
 
-    im = Image.fromarray(np.rint(image).clip(0, 255).astype(np.uint8), "RGB")
+    centre_tete, demi_largeur = geometrie_tete(alpha, (x_yeux, y_yeux), base.shape[:2])
+    reperes = {
+        "yeux_faustine": (x_yeux, y_yeux),
+        # Rayon de l'auréole, lueur comprise.
+        "aureole": (centre_tete, demi_largeur * AUREOLE_MARGE + AUREOLE_FLOU_LUEUR * 2),
+        "luisa": LUISA_TETE_CERCLE,
+    }
+    return Image.fromarray(np.rint(image).clip(0, 255).astype(np.uint8), "RGB"), reperes
+
+
+def main():
+    im, reperes = construire()
+    x_yeux, y_yeux = reperes["yeux_faustine"]
     os.makedirs(ESSAIS, exist_ok=True)
     im.save(os.path.join(ESSAIS, "luisa_faustine_v1.png"), optimize=True)
 
