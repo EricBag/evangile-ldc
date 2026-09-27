@@ -1,0 +1,36 @@
+[Rank]
+S. Nominis Beatæ Mariæ Virginis;;Duplex majus;;4;;ex C11
+
+[Rule]
+vide C11;
+Gloria
+Credo
+Prefatio=Maria=Festivitate
+
+[Introitus]
+@Commune/C10b
+
+[Oratio]
+Concéde, quǽsumus, omnípotens Deus: ut fidéles tui, qui sub sanctíssimæ Vírginis Maríæ Nómine et protectióne lætántur; ejus pia intercessióne a cunctis malis liberéntur in terris, et ad gáudia ætérna perveníre mereántur in cœlis.
+$Per Dominum
+
+[Lectio]
+@Sancti/07-16
+
+[Graduale]
+@Commune/C11
+
+[Evangelium]
+@Commune/C10a
+
+[Offertorium]
+@Commune/C10a
+
+[Secreta]
+@Commune/C10
+
+[Communio]
+@Commune/C10
+
+[Postcommunio]
+@Commune/C10

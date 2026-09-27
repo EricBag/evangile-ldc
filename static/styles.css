@@ -470,6 +470,23 @@ body {
     color: #3a2c18;
 }
 
+/* Selecteur de forme (Ordinaire / Traditionnel 1962), meme dessin que le
+   selecteur de corpus */
+.bloc-forme {
+    margin: 0 0 1.2rem;
+    text-align: center;
+}
+
+.mention-source {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    font-style: italic;
+    color: #6b5637;
+    text-align: center;
+    margin: -0.6rem 0 1.6rem;
+    line-height: 1.45;
+}
+
 /* Selecteur de corpus */
 .bloc-sources {
     margin: 0 0 1.75rem;

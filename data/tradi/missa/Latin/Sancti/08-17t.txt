@@ -1,0 +1,50 @@
+[Officium]
+In Octava S. Laurentii Martyris
+
+[Rank]
+;;Duplex;;3.1;;vide Sancti/08-10
+(sed rubrica divino)
+;;Simplex;;1.4;;vide Sancti/08-10
+
+[Rule]
+Gloria
+CredoDA
+
+[Introitus]
+!Ps 16:3
+v. Probásti, Dómine, cor meum, et visitásti nocte: igne me examinásti, et non est invénta in me iníquitas.
+!Ps 16:1
+Exáudi, Dómine, justítiam meam: inténde deprecatiónem meam.
+&Gloria
+v. Probásti, Dómine, cor meum, et visitásti nocte: igne me examinásti, et non est invénta in me iníquitas.
+
+[Oratio]
+Excita, Dómine, in Ecclésia tua Spíritum, cui beátus Laurentius Levita servívit: ut, eódem nos repleti, studeamus amare quod amavit, et ópere exercere quod docuit.
+$Per Dominum eiusdem
+
+[Lectio]
+@Sancti/08-10
+
+[Graduale]
+!Ps 8:6-7
+Glória et honóre coronásti eum.
+V. Et constituísti eum super ópera mánuum tuárum, Dómine. 
+Allelúja, allelúja.
+V. Levíta Lauréntius bonum opus operátus est: qui per signum crucis cœcos illuminávit. Allelúja.
+
+[Evangelium]
+@Sancti/02-01
+
+[Offertorium]
+@Commune/C5-1
+
+[Secreta]
+Sacrifícium nostrum tibi, Dómine, quǽsumus, beáti Lauréntii precátio sancta concíliet: ut, cujus honóre sollémniter exhíbetur, ejus méritis efficiátur accéptum.
+$Per Dominum
+
+[Communio]
+@Commune/C2a
+
+[Postcommunio]
+Súpplices te rogámus, omnípotens Deus: ut, quos donis cœléstibus satiásti, intercedénte beáto Lauréntio Mártyre tuo, perpétua protectióne custódias.
+$Per Dominum

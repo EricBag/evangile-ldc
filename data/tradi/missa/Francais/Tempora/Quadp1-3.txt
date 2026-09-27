@@ -1,0 +1,5 @@
+[Officium]
+Feria IV infra Hebdomadam Septuagesimae
+
+[Graduale]
+@Tempora/Quadp1-0:GradualeF

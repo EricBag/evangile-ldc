@@ -52,6 +52,7 @@ RL_LOGIN_PER_MIN = int(os.environ.get("RL_LOGIN_PER_MIN", "10"))               #
 
 import aelf_client
 import faustine_parser
+import tradi
 from ldc_proZ import (
     SOURCE_FAUSTINE,
     SOURCE_LUISA,
@@ -217,6 +218,15 @@ SOURCES_DISPONIBLES = ((SOURCE_LUISA, SOURCE_FAUSTINE) if PARAGRAPHES
 print(f"Index chargé : {len(SEGMENTS)} segments, "
       f"sources disponibles : {', '.join(SOURCES_DISPONIBLES)}.")
 
+# Forme traditionnelle (missel de 1962) : textes parsés une fois ici. En cas
+# d'échec, l'application démarre quand même, sans le sélecteur de forme.
+try:
+    TRADI: Optional[tradi.MesseTraditionnelle] = tradi.MesseTraditionnelle()
+    print("Textes du missel de 1962 chargés.")
+except Exception as exc:
+    TRADI = None
+    print(f"Forme traditionnelle indisponible : {exc}")
+
 
 def sources_demandees(brut: str) -> tuple:
     """Traduit le paramètre `sources` de la requête en tuple validé.
@@ -360,6 +370,7 @@ async def root(request: Request, session: Optional[str] = Cookie(default=None)):
         "evangile_text": state["text"],
         "error": state["error"],
         "faustine_disponible": SOURCE_FAUSTINE in SOURCES_DISPONIBLES,
+        "tradi_disponible": TRADI is not None,
     })
 
 @app.get("/sw.js")
@@ -396,11 +407,22 @@ async def login(request: Request, password: str = Form(...)):
 async def api_evangile(
     date_iso: str = Form(...),
     include_premiere_lecture: bool = Form(False),
+    forme: str = Form("ordinaire"),
     session: Optional[str] = Cookie(default=None),
 ):
-    """Récupère l'évangile AELF pour une date (utilisé pour rafraîchir sans reload)."""
+    """Récupère l'évangile d'une date (utilisé pour rafraîchir sans reload).
+
+    `forme` : « ordinaire » (AELF, défaut) ou « tradi » (missel de 1962).
+    """
     if not is_authenticated(session):
         raise HTTPException(status_code=401, detail="Non authentifié")
+
+    if forme == "tradi":
+        if TRADI is None:
+            return JSONResponse({"context": "", "text": "",
+                                 "error": "Forme traditionnelle indisponible."})
+        state = await run_in_threadpool(TRADI.etat_pour_api, date_iso)
+        return JSONResponse(state)
 
     state = await run_in_threadpool(build_evangile_state, date_iso, include_premiere_lecture)
     return JSONResponse(state)

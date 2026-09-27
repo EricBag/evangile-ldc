@@ -1,0 +1,11 @@
+[Officium]
+Feria Tertia infra Hebdomadam I post Octavam Pentecostes
+
+[Oratio]
+@Tempora/Pent01-1:Oratio
+
+[Secreta]
+@Tempora/Pent01-1:Secreta
+
+[Postcommunio]
+@Tempora/Pent01-1:Postcommunio

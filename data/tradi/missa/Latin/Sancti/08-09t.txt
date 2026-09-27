@@ -1,0 +1,50 @@
+[Officium]
+In Vigilia S. Laurentii Mart.
+
+[Rank]
+;;Vigilia Simplex;;1.5
+(sed rubrica 196)
+;;Vigilia;;3
+
+[Rule]
+vide C2b;
+no Gloria
+Suffragium=Maria3;Papa,Ecclesiæ;;
+
+[Introitus]
+!Ps 111:9
+v. Dispérsit, dedit paupéribus: justítia ejus manet in sǽculum sǽculi: cornu ejus exaltábitur in glória.
+!Ps 111:1.
+Beátus vir, qui timet Dóminum: in mandátis ejus cupit nimis.
+&Gloria
+v. Dispérsit, dedit paupéribus: justítia ejus manet in sǽculum sǽculi: cornu ejus exaltábitur in glória. Non dicitur Glória in excélsis.
+
+[Oratio]
+Adésto, Dómine, supplicatiónibus nostris: et intercessióne beáti Lauréntii Mártyris tui, cujus prævénimus festivitátem; perpétuam nobis misericórdiam benígnus impénde.
+$Per Dominum
+
+[Lectio]
+@Commune/C6
+
+[Graduale]
+!Ps 111:9; 111:2
+Dispersit, dedit paupéribus: justítia ejus manet in sǽculum sǽculi.
+V. Potens in terra erit semen ejus: generátio rectórum benedicétur.
+
+[Evangelium]
+@Commune/C2-1
+
+[Offertorium]
+!Job 16:20
+Orátio mea munda est: et ídeo peto, ut detur locus voci meæ in cœlo: quia ibi est judex meus, et cónscius meus in excélsis: ascéndat ad Dóminum deprecátio mea.
+
+[Secreta]
+Hóstias, Dómine, quas tibi offérimus, propítius súscipe: et, intercedénte beáto Lauréntio Mártyre tuo, víncula peccatórum nostrórum absólve.
+$Per Dominum
+
+[Communio]
+@Commune/C2a
+
+[Postcommunio]
+Da, quǽsumus, Dómine, Deus noster: ut, sicut beáti Lauréntii Mártyris tui commemoratióne, temporáli gratulámur offício; ita perpétuo lætémur aspéctu.
+$Per Dominum

@@ -1,0 +1,24 @@
+[Officium]
+S. Stephani Hungariæ Regis Confessoris
+
+[Rank]
+;;Semiduplex;;2.2;;vide C5
+
+[Rule]
+vide C5
+Gloria
+
+[Oratio]
+Concéde, quǽsumus, Ecclésiæ tuæ, omnípotens Deus: ut beátum Stéphanum Confessórem tuum, quem regnántem in terris propagatórem hábuit, propugnatórem habére mereátur gloriósum in cœlis.
+$Per Dominum
+
+[Evangelium]
+@Sancti/08-25
+
+[Secreta]
+Réspice, quas offérimus, hóstias, omnípotens Deus: et præsta; ut, qui passiónis Dominicæ mystéria celebrámus, imitémur quod ágimus.
+$Per eundem
+
+[Postcommunio]
+Præsta, quǽsumus, omnípotens Deus: ut beáti Stephani Confessóris tui fidem cóngrua devotióne sectémur; qui, pro ejúsdem fídei dilatatióne, de terréno regno ad cœléstis regni glóriam méruit perveníre.
+$Per Dominum

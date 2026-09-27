@@ -4,7 +4,7 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Évangile du jour — Livre du Ciel</title>
-    <link rel="stylesheet" href="/static/styles.css?v=6"/>
+    <link rel="stylesheet" href="/static/styles.css?v=7"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css"/>
 
     <link rel="apple-touch-icon" sizes="180x180" href="/static/icon-180.png">
@@ -67,6 +67,17 @@
                     <input type="date" id="date-input" value="{{ today }}" class="input-date-overlay" aria-label="Choisir une date"/>
                 </div>
             </div>
+            {% if tradi_disponible %}
+            <div class="bloc-forme" id="bloc-forme">
+                <div class="selecteur-sources" id="selecteur-forme"
+                     role="radiogroup" aria-label="Forme de la messe">
+                    <button type="button" class="option-source" role="radio"
+                            data-forme="ordinaire" aria-checked="true">Ordinaire</button>
+                    <button type="button" class="option-source" role="radio"
+                            data-forme="tradi" aria-checked="false">Traditionnel (1962)</button>
+                </div>
+            </div>
+            {% endif %}
             <p id="contexte-liturgique" class="contexte-liturgique"
                {% if not context %}style="display:none;"{% endif %}>{{ context or "" }}</p>
             <p id="erreur-aelf" class="erreur-aelf" style="display:none;">Lectures AELF indisponibles pour cette date.</p>
@@ -88,6 +99,7 @@
                           style="display:none;"></textarea>
 
             </div>
+            <p id="mention-source" class="mention-source" style="display:none;"></p>
 
             <div class="bloc-toggle">
                 <label class="toggle-switch">
@@ -309,20 +321,72 @@
             });
         }
 
+        // --- Forme de la messe : Ordinaire (AELF) ou Traditionnel (1962) ---
+        // L'ordinaire reste le défaut ; le choix est mémorisé sur l'appareil.
+        const CLE_PREF_FORME = 'evangile-ldc.forme';
+        const FORME_PAR_DEFAUT = 'ordinaire';
+        const selecteurForme = document.getElementById('selecteur-forme');
+        const blocForme = document.getElementById('bloc-forme');
+        const mentionSource = document.getElementById('mention-source');
+        const blocToggle = document.querySelector('.bloc-toggle');
+        let modeEvangileDuJour = false;
+
+        function formeActive() {
+            if (!selecteurForme) return FORME_PAR_DEFAUT;
+            const choisi = selecteurForme.querySelector('[aria-checked="true"]');
+            return choisi ? choisi.dataset.forme : FORME_PAR_DEFAUT;
+        }
+
+        function appliquerForme(valeur, memoriser) {
+            if (!selecteurForme) return;
+            const options = selecteurForme.querySelectorAll('.option-source');
+            if (![...options].some((o) => o.dataset.forme === valeur)) {
+                valeur = FORME_PAR_DEFAUT;
+            }
+            options.forEach((o) => {
+                const actif = o.dataset.forme === valeur;
+                o.setAttribute('aria-checked', actif ? 'true' : 'false');
+                o.classList.toggle('option-source-active', actif);
+            });
+            if (memoriser) ecrirePreference(CLE_PREF_FORME, valeur);
+            majToggleLecture();
+        }
+
+        function majToggleLecture() {
+            // La 1re lecture n'est proposée que pour la forme ordinaire (AELF).
+            blocToggle.style.display =
+                (modeEvangileDuJour && formeActive() !== 'tradi') ? '' : 'none';
+        }
+
+        if (selecteurForme) {
+            appliquerForme(lirePreference(CLE_PREF_FORME, FORME_PAR_DEFAUT), false);
+            selecteurForme.addEventListener('click', async (evt) => {
+                const option = evt.target.closest('.option-source');
+                if (!option || option.dataset.forme === formeActive()) return;
+                appliquerForme(option.dataset.forme, true);
+                if (modeEvangileDuJour) await rafraichirEvangile(true);
+            });
+        }
+
         function basculerVersEvangile() {
             ecranChoix.style.display = 'none';
             ecranEvangile.style.display = '';
         }
 
         choixEvangile.addEventListener('click', async () => {
+            modeEvangileDuJour = true;
             labelEvangileTitre.textContent = 'Évangile';
-            document.querySelector('.bloc-toggle').style.display = '';
+            if (blocForme) blocForme.style.display = '';
+            majToggleLecture();
             basculerVersEvangile();
             await rafraichirEvangile(true);
         });
 
         choixTexte.addEventListener('click', () => {
+            modeEvangileDuJour = false;
             basculerVersEvangile();
+            if (blocForme) blocForme.style.display = 'none';
+            mentionSource.style.display = 'none';
             contexteEl.style.display = 'none';
             incipitEl.style.display = 'none';
             evangileTexteBrut = '';
@@ -340,6 +404,8 @@
             const formData = new FormData();
             formData.append('date_iso', dateInput.value);
             formData.append('include_premiere_lecture', toggleLecture.checked);
+            const forme = formeActive();
+            formData.append('forme', forme);
 
             try {
                 const response = await fetch('/api/evangile', {
@@ -354,7 +420,16 @@
                 } else {
                     contexteEl.style.display = 'none';
                 }
+                erreurEl.textContent = forme === 'tradi'
+                    ? (data.error || '')
+                    : 'Lectures AELF indisponibles pour cette date.';
                 erreurEl.style.display = data.error ? '' : 'none';
+                if (forme === 'tradi' && data.source && !data.error) {
+                    mentionSource.textContent = data.source;
+                    mentionSource.style.display = '';
+                } else {
+                    mentionSource.style.display = 'none';
+                }
 
                 if (forceReplace || evangileTexteBrut === texteAuto) {
                     evangileTexteBrut = data.text;
