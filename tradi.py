@@ -38,6 +38,7 @@ explicite (`TradiError`), jamais une reprise tacite.
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from dataclasses import dataclass, field
@@ -481,6 +482,7 @@ class Evangile:
     reprise_dimanche: Optional[str] = None   # fichier de la messe reprise
     messes: List[str] = field(default_factory=list)  # si plusieurs messes
     reference_latine: Optional[str] = None   # si elle diffère de la française
+    corrections: List[str] = field(default_factory=list)  # corrections appliquées
 
     @property
     def mention(self) -> str:
@@ -494,6 +496,7 @@ class ResultatEvangile(NamedTuple):
     paragraphes: List[str]
     latin: bool                       # texte (en partie) latin
     reference_latine: Optional[str] = None   # si elle diffère de la française
+    corrections: Tuple[str, ...] = ()        # corrections de référence appliquées
 
 
 # ============================================================
@@ -551,6 +554,17 @@ EVANGILES_DANS_PRELUDE = {
 #: disparaissait. Elle est rétablie ici, la férie n'étant que de 3e classe.
 VENDREDI_PASSION_MISSALEMEUM = "tempora:Quad5-5Feria:3:v"
 
+#: Surcharges de rang du calendrier Missale Meum, par date (MM-JJ) :
+#: observance à célébrer quand le jour n'a rien de rang supérieur (le rang
+#: de la surcharge doit l'emporter strictement sur la célébration retenue).
+#: - 13/11, saint Didace : fête de IIIe classe dans le calendrier de 1960
+#:   (Rubricarum instructum, Jean XXIII, 25/07/1960, et calendrier annexé),
+#:   comme sur le site Divinum Officium ; Missale Meum n'en fait qu'une
+#:   commémoraison (IVe classe), d'où une messe de la Vierge le samedi en 2027.
+SURCHARGES_RANG = {
+    "11-13": "sancti:11-13:3:w",
+}
+
 NOMS_COMMUNE = {
     "Commune/C11": "Messe de la Sainte Vierge le samedi",
     "Commune/C10": "Messe de la Sainte Vierge le samedi",
@@ -583,6 +597,13 @@ class MesseTraditionnelle:
             raise TradiError(f"Aucun texte trouvé dans {self.racine}")
         #: Incidents de résolution rencontrés (pour le rapport annuel).
         self.incidents: List[str] = []
+        #: Corrections de références (coquilles de Divinum Officium), par
+        #: (fichier, langue). Voir data/tradi/corrections.json.
+        self.corrections: Dict[Tuple[str, str], List[dict]] = {}
+        fichier_corrections = self.racine / "corrections.json"
+        if fichier_corrections.exists():
+            for c in json.loads(fichier_corrections.read_text(encoding="utf-8")):
+                self.corrections.setdefault((c["fichier"], c["langue"]), []).append(c)
         log.info("Messe 1962 : %d fichiers chargés", len(self._fichiers))
 
     # ---------------- Textes ----------------
@@ -737,11 +758,16 @@ class MesseTraditionnelle:
         """
         la = self._evangile_brut(chemin, LATIN, pascal)
         fr = self._evangile_brut(chemin, FRANCAIS, pascal)
+        corrections: List[str] = []
+        if la is not None:
+            la = (self._corriger(chemin, LATIN, la[0], corrections), *la[1:])
+        if fr is not None:
+            fr = (self._corriger(chemin, FRANCAIS, fr[0], corrections), *fr[1:])
         if fr is None and la is None:
             return None
         if fr is None:
             log.warning("%s : traduction française indisponible, texte latin", chemin)
-            return ResultatEvangile(la[0], la[1], True)
+            return ResultatEvangile(la[0], la[1], True, None, tuple(corrections))
         ref, paragraphes, latin = fr
         if latin:
             log.warning("%s : traduction française indisponible, texte latin", chemin)
@@ -754,7 +780,16 @@ class MesseTraditionnelle:
                    f"{la[0]!r} (texte français conservé)")
             self.incidents.append(msg)
             log.warning(msg)
-        return ResultatEvangile(ref, paragraphes, latin, ref_latine)
+        return ResultatEvangile(ref, paragraphes, latin, ref_latine, tuple(corrections))
+
+    def _corriger(self, chemin: str, langue: str, ref: str, notes: List[str]) -> str:
+        """Applique la table de corrections à une référence brute."""
+        for c in self.corrections.get((chemin, langue), []):
+            if cle_reference(ref) == cle_reference(c["reference_erronee"]):
+                notes.append(f"{chemin} ({langue}) : {c['reference_erronee']} → "
+                             f"{c['reference_corrigee']}")
+                return c["reference_corrigee"]
+        return ref
 
     def _decouper(self, chemin, ref, paragraphes):
         """Coupe un texte français au verset de début de la péricope de 1962.
@@ -788,6 +823,9 @@ class MesseTraditionnelle:
         """
         journee = self._calendrier(jour.year).get_day(jour)
         celebrations = [o for o in journee.celebration if o.id != FERIE_MISSALEMEUM]
+        surcharge = self._surcharge_de_rang(jour, celebrations or list(journee.tempora))
+        if surcharge is not None:
+            return surcharge, []
         if celebrations and celebrations[0].id == VENDREDI_PASSION_MISSALEMEUM:
             fete = self._fete_de_premiere_classe(jour)
             if fete is not None:
@@ -806,6 +844,19 @@ class MesseTraditionnelle:
         if not any(o.name.startswith(("12-25m", "11-02m")) for o in celebrations):
             log.warning("%s : plusieurs messes %s, la 1re est retenue", jour, ids)
         return principale, ids
+
+    @staticmethod
+    def _surcharge_de_rang(jour: date, retenues: list):
+        """Observance de SURCHARGES_RANG si elle l'emporte sur `retenues`."""
+        ident = SURCHARGES_RANG.get(f"{jour:%m-%d}")
+        if ident is None:
+            return None
+        from vendor.missalemeum.kalendar.models import Observance
+        fete = Observance(ident, jour, "la")
+        if all(fete.rank < o.rank for o in retenues):
+            log.info("%s : surcharge de rang, %s célébré", jour, ident)
+            return fete
+        return None
 
     @staticmethod
     def _fete_de_premiere_classe(jour: date):
@@ -902,7 +953,7 @@ class MesseTraditionnelle:
                 r = self.evangile_fichier(reprise, pascal)
         if r is None:
             raise TradiError(f"messe reprise {reprise} sans Évangile")
-        ref, paragraphes, latin, ref_latine = r
+        ref, paragraphes, latin, ref_latine, corrections = r
         return Evangile(
             date=jour.isoformat(),
             office=office,
@@ -915,6 +966,7 @@ class MesseTraditionnelle:
             reprise_dimanche=reprise,
             messes=messes,
             reference_latine=formater_reference(ref_latine) if ref_latine else None,
+            corrections=list(corrections),
         )
 
     # ---------------- Interface avec l'API ----------------

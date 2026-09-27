@@ -1,0 +1,16 @@
+[
+  {
+    "fichier": "Tempora/Quad2-4",
+    "langue": "Francais",
+    "reference_erronee": "Luc 6, 19-31",
+    "reference_corrigee": "Luc 16, 19-31",
+    "justification": "Coquille de Divinum Officium (missa/Francais/Tempora/Quad2-4.txt, ligne 28 : « !Luc 6:19-31 »). Le texte est la parabole du riche et de Lazare (Luc 16, 19-31), référence donnée par le fichier latin. Signalée : voir SIGNALEMENTS.md."
+  },
+  {
+    "fichier": "Sancti/06-28r",
+    "langue": "Latin",
+    "reference_erronee": "Jean 21, 15-10",
+    "reference_corrigee": "Jean 21, 15-19",
+    "justification": "Coquille de Divinum Officium (missa/Latin/Sancti/06-28r.txt, ligne 38 : « !Joannes 21:15-10 », plage décroissante). Le texte s'achève au verset 19 (« Hoc autem dixit, signíficans, qua morte clarificatúrus esset Deum »), référence donnée par le fichier français. Sans effet sur l'affichage (texte français), tracée pour mémoire. Signalée : voir SIGNALEMENTS.md."
+  }
+]

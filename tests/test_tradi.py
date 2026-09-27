@@ -126,13 +126,31 @@ class TestDatesDeReference(unittest.TestCase):
         e = self.verifier("2027-06-02", "Luc 14, 16-24", "Tempora/Pent02-3")
         self.assertEqual(e.reprise_dimanche, "Tempora/Pent02-0")
 
-    def test_ecart_de_reference_texte_francais_garde(self):
-        # Coquille de la référence française (Luc 6 pour Luc 16) : texte
-        # français conservé, écart signalé.
-        e = self.evangile("2027-02-25")
-        self.assertFalse(e.latin)
-        self.assertEqual(e.reference_latine, "Luc 16, 19-31")
+    def test_coquille_francaise_corrigee(self):
+        # « Luc 6, 19-31 » dans le fichier français : corrigé par
+        # data/tradi/corrections.json, texte français conservé.
+        e = self.verifier("2027-02-25", "Luc 16, 19-31", "Tempora/Quad2-4")
+        self.assertIsNone(e.reference_latine)
+        self.assertEqual(len(e.corrections), 1)
         self.assertIn("Lazare", e.texte)
+
+    def test_coquille_latine_tracee(self):
+        # « Jean 21, 15-10 » dans le fichier latin : l'affichage (français)
+        # était déjà juste, la correction est tracée.
+        e = self.verifier("2027-06-28", "Jean 21, 15-19", "Sancti/06-28r")
+        self.assertIsNone(e.reference_latine)
+        self.assertEqual(e.corrections,
+                         ["Sancti/06-28r (Latin) : Jean 21, 15-10 → Jean 21, 15-19"])
+
+    def test_saint_didace_troisieme_classe(self):
+        # Surcharge de rang (calendrier de 1960) : IIIe classe, l'emporte sur
+        # la messe de la Vierge le samedi (IVe classe) retenue par Missale Meum.
+        e = self.verifier("2027-11-13", "Luc 12, 32-34", "Sancti/11-13")
+        self.assertIn("Didace", e.nom_messe)
+
+    def test_mont_carmel_reste_une_commemoraison(self):
+        e = self.verifier("2027-07-16", "Luc 16, 1-9", "Tempora/Pent08-5")
+        self.assertEqual(e.reprise_dimanche, "Tempora/Pent08-0")
 
     def test_octave_de_noel(self):
         # Jours dans l'octave : Évangile de la messe de l'aurore (Luc 2, 15-20).
@@ -183,7 +201,7 @@ class TestParseur(unittest.TestCase):
             "missa/Francais/Sancti/01-02.txt": "[Evangelium]\n@Commune/C4:Evangelium\n",
             "horas/Francais/Commune/C4.txt": "[Evangelium]\nSuite\n!Mt 25:14-23\nEn ce temps-là.\n",
         })
-        ref, paragraphes, latin, _ = m.evangile_fichier("Sancti/01-01")
+        ref, paragraphes, latin = m.evangile_fichier("Sancti/01-01")[:3]
         self.assertEqual(tradi.formater_reference(ref), "Matthieu 25, 14-23")
         self.assertEqual(paragraphes, ["En ce temps-là."])
         self.assertFalse(latin)
@@ -208,7 +226,7 @@ class TestParseur(unittest.TestCase):
             "missa/Latin/Sancti/01-01.txt": "[Evangelium]\nSequentia\n!Joann 1:1-5\nIn principio.\n",
             "missa/Francais/Sancti/01-01.txt": "[Officium]\nSaint X\n",
         })
-        _, paragraphes, latin, _ = m.evangile_fichier("Sancti/01-01")
+        _, paragraphes, latin = m.evangile_fichier("Sancti/01-01")[:3]
         self.assertTrue(latin)
         self.assertEqual(paragraphes, ["In principio."])
 
@@ -221,7 +239,7 @@ class TestParseur(unittest.TestCase):
             "horas/Latin/Commune/C4.txt": "[Evangelium]\nS\n!Matt 5:13-19\nVos estis.\n",
             "horas/Francais/Commune/C4.txt": "[Evangelium]\nS\n!Matt 5:13-19\nVous êtes.\n",
         })
-        _, paragraphes, latin, _ = m.evangile_fichier("Sancti/01-01")
+        _, paragraphes, latin = m.evangile_fichier("Sancti/01-01")[:3]
         self.assertEqual(paragraphes, ["Vous êtes."])
         self.assertFalse(latin)
 
@@ -243,6 +261,21 @@ class TestParseur(unittest.TestCase):
         self.assertEqual(r.reference, "!Luc 6:19-31")
         self.assertEqual(r.reference_latine, "!Luc 16:19-31")
         self.assertTrue(any("écart de référence" in i for i in m.incidents))
+
+    def test_table_de_corrections(self):
+        m = self.moteur({
+            "missa/Latin/Sancti/01-01.txt": "[Evangelium]\nS\n!Luc 16:19-31\nHomo quidam.\n",
+            "missa/Francais/Sancti/01-01.txt": "[Evangelium]\nS\n!Luc 6:19-31\nUn homme.\n",
+            "corrections.json": """[{"fichier": "Sancti/01-01", "langue": "Francais",
+                "reference_erronee": "Luc 6, 19-31", "reference_corrigee": "Luc 16, 19-31",
+                "justification": "test"}]""",
+        })
+        r = m.evangile_fichier("Sancti/01-01")
+        self.assertEqual(tradi.formater_reference(r.reference), "Luc 16, 19-31")
+        self.assertEqual(r.paragraphes, ["Un homme."])
+        self.assertIsNone(r.reference_latine)
+        self.assertEqual(len(r.corrections), 1)
+        self.assertFalse(any("écart de référence" in i for i in m.incidents))
 
     def test_decoupe_du_texte_francais(self):
         latin = "[Evangelium]\nS\n!Marc 14:32-72; 15, 1-46\nEt veniunt.\n"

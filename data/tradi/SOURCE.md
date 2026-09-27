@@ -52,6 +52,15 @@ d'identifier la traduction utilisée pour les Évangiles) :
 La mention affichée dans l'application est donc : « Missel romain de 1962 —
 texte : Divinum Officium (divinumofficium.com), traduction non identifiée ».
 
+## Corrections locales
+
+`corrections.json` corrige des coquilles de référence de Divinum Officium
+(fichier, langue, référence erronée, référence corrigée, justification) ;
+chaque correction appliquée est listée dans le rapport annuel. Les
+signalements correspondants à poster en amont sont dans `SIGNALEMENTS.md`.
+Après une mise à jour des textes, supprimer les entrées devenues inutiles
+(le rapport ne les listera plus comme appliquées).
+
 ## Calendrier
 
 Le choix de la messe du jour (rubriques de 1960) est fait par le moteur de

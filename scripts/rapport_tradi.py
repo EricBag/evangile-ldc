@@ -24,6 +24,29 @@ import tradi  # noqa: E402
 
 JOURS = ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."]
 
+#: Écarts avec le site Divinum Officium examinés et assumés, par fichier
+#: retenu par tradi.py ou par date (MM-JJ), avec la raison en une ligne.
+ECARTS_ASSUMES = {
+    "Sancti/12-25m3": "Noël : messe du jour retenue parmi les trois messes "
+                      "(le site affiche la messe de minuit).",
+    "Tempora/Quad6-4r": "Jeudi saint : messe du soir (Cène du Seigneur), messe "
+                        "principale (le site affiche la messe chrismale).",
+    "Tempora/Pasc5-1": "Lundi des Rogations : messe propre des Rogations "
+                       "(le site affiche la messe de férie).",
+    "Sancti/12-28": "Saints Innocents (IIe classe) ; le site affiche un jour dans "
+                    "l'octave avec Luc 2, 42-52, anomalie probable du site.",
+    "08-22": "Un dimanche de IIe classe l'emporte sur une fête de IIe classe qui "
+             "n'est pas du Seigneur (rubriques de 1960) : dimanche, pas le Cœur Immaculé.",
+    "07-16": "Notre-Dame du Mont-Carmel : commémoraison dans le calendrier de 1960 "
+             "(AAS 1960), messe de la férie ; le site en fait une IIIe classe.",
+}
+
+
+def ecart_assume(jour, e):
+    if e is not None and e.fichier in ECARTS_ASSUMES:
+        return ECARTS_ASSUMES[e.fichier]
+    return ECARTS_ASSUMES.get(f"{jour:%m-%d}")
+
 
 def main() -> None:
     debut = date.fromisoformat(sys.argv[1]) if len(sys.argv) > 1 else date(2026, 11, 29)
@@ -37,6 +60,7 @@ def main() -> None:
     moteur = tradi.MesseTraditionnelle()
     lignes, erreurs, latin, reprises, multiples, incidents = [], [], [], [], [], []
     ecarts_fr_la, noms_origine, ecarts_site, sans_site = [], [], [], []
+    corrections, assumes = [], []
     concordants = 0
     j = debut
     while j <= fin:
@@ -59,6 +83,9 @@ def main() -> None:
             if e.messes:
                 multiples.append((j, e))
                 notes.append("messe principale parmi " + ", ".join(e.messes))
+            for c in e.corrections:
+                corrections.append((j, c))
+                notes.append(f"référence corrigée : {c}")
             if e.reference_latine:
                 ecarts_fr_la.append((j, e))
                 notes.append(f"réf. latine : {e.reference_latine}")
@@ -83,6 +110,16 @@ def main() -> None:
                     [e.reference_brute] + ([e.reference_latine] if e.reference_latine else [])
                 if any(tradi.cle_reference(r) == cle_site for r in refs_nous):
                     concordants += 1
+                elif e is not None and any(
+                        tradi.cle_reference(c["reference_erronee"]) == cle_site
+                        for liste in (moteur.corrections.get((e.fichier, langue), [])
+                                      for langue in (tradi.FRANCAIS, tradi.LATIN))
+                        for c in liste):
+                    raison = ("Le site reproduit une coquille de référence de Divinum "
+                              "Officium, corrigée par corrections.json.")
+                    assumes.append((j, e, site, raison))
+                elif ecart_assume(j, e):
+                    assumes.append((j, e, site, ecart_assume(j, e)))
                 else:
                     ecarts_site.append((j, e, site))
         j += timedelta(days=1)
@@ -108,6 +145,7 @@ def main() -> None:
         f"| Jours en repli latin | {len(latin)} |",
         f"| Féries résolues par reprise (dimanche ou messe précédente) | {len(reprises)} |",
         f"| Jours à plusieurs messes (principale retenue) | {len(multiples)} |",
+        f"| Corrections de référence appliquées (corrections.json) | {len(corrections)} |",
         f"| Écarts de référence français / latin (texte français conservé) | {len(ecarts_fr_la)} |",
         f"| Autres incidents | {len(autres)} |",
         f"| Sanctoral affiché avec le nom d'origine Divinum Officium | {len(noms_origine)} |",
@@ -115,7 +153,8 @@ def main() -> None:
     if controle is not None:
         md += [
             f"| Contrôle site Divinum Officium : références concordantes | {concordants} |",
-            f"| **Contrôle site Divinum Officium : écarts** | {len(ecarts_site)} |",
+            f"| Contrôle site Divinum Officium : écarts assumés | {len(assumes)} |",
+            f"| **Contrôle site Divinum Officium : écarts non expliqués** | {len(ecarts_site)} |",
             f"| Contrôle site Divinum Officium : référence non lue sur le site | {len(sans_site)} |",
         ]
     else:
@@ -138,6 +177,10 @@ def main() -> None:
             lambda x: f"- {x[0]} : {x[1].nom_messe} → `{x[1].reprise_dimanche}` ({x[1].reference})")
     section("Jours à plusieurs messes", multiples,
             lambda x: f"- {x[0]} : retenue `{x[1].fichier}` parmi {', '.join(x[1].messes)}")
+    section("Corrections de référence appliquées", corrections,
+            lambda x: f"- {x[0]} : {x[1]}",
+            intro="Coquilles de Divinum Officium corrigées par `data/tradi/corrections.json` "
+                  "(justification de chaque entrée dans le fichier).")
     section("Écarts de référence français / latin", ecarts_fr_la,
             lambda x: f"- {x[0]} : {x[1].nom_messe} (`{x[1].fichier}`) — française "
                       f"**{x[1].reference}** (affichée), latine {x[1].reference_latine}",
@@ -151,15 +194,23 @@ def main() -> None:
                 f"{e.reference} — {e.nom_messe} (`{e.fichier}`)"
             return (f"| {j} {JOURS[j.weekday()]} | {nous} | "
                     f"{tradi.formater_reference(site['reference'])} — {site.get('titre') or '?'} |")
-        md.extend(["## Contrôle indépendant : écarts avec le site Divinum Officium", "",
-                   "Référence de l'Évangile affichée par www.divinumofficium.com "
-                   "(rubriques 1960, `scripts/controle_divinum.py`) comparée à celle "
-                   "de `tradi.py` (française ou latine).", ""])
+        intro = ("Référence de l'Évangile affichée par www.divinumofficium.com "
+                 "(rubriques 1960, `scripts/controle_divinum.py`) comparée à celle "
+                 "de `tradi.py` (française ou latine).")
+        md.extend(["## Contrôle indépendant : écarts non expliqués avec le site Divinum Officium",
+                   "", intro, ""])
         if ecarts_site:
             md.extend(["| Date | tradi.py | Site Divinum Officium |", "|---|---|---|",
                        *map(fmt_site, ecarts_site)])
         else:
             md.append("Aucun écart.")
+        md.extend(["", "## Contrôle indépendant : écarts assumés", ""])
+        if assumes:
+            md.extend(["| Date | tradi.py | Site Divinum Officium | Raison |",
+                       "|---|---|---|---|",
+                       *(fmt_site(x[:3]) + f" {x[3]} |" for x in assumes)])
+        else:
+            md.append("Aucun.")
         md.append("")
         section("Contrôle indépendant : référence non lue sur le site", sans_site,
                 lambda x: f"- {x[0]} : {x[1] or 'titre non lu'}"
@@ -173,10 +224,12 @@ def main() -> None:
 
     sortie.write_text("\n".join(md), encoding="utf-8")
     bilan_site = "" if controle is None else \
-        f", site DO : {concordants} concordants / {len(ecarts_site)} écarts / {len(sans_site)} non lus"
+        f", site DO : {concordants} concordants / {len(assumes)} écarts assumés / " \
+        f"{len(ecarts_site)} écarts non expliqués / {len(sans_site)} non lus"
     print(f"{nb} jours : {len(erreurs)} erreurs, {len(non_resolus)} renvois non "
           f"résolus, {len(latin)} replis latins, {len(reprises)} reprises, "
-          f"{len(ecarts_fr_la)} écarts FR/LA, {len(autres)} autres incidents"
+          f"{len(corrections)} corrections, {len(ecarts_fr_la)} écarts FR/LA, "
+          f"{len(autres)} autres incidents"
           f"{bilan_site} → {sortie}")
 
 
