@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Évangile du jour — Livre du Ciel</title>
-    <link rel="stylesheet" href="/static/styles.css?v=8"/>
+    <title>Évangile du jour — Miséricorde et Divine Volonté</title>
+    <link rel="stylesheet" href="/static/styles.css?v=9"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css"/>
 
     <link rel="apple-touch-icon" sizes="180x180" href="/static/icon-180.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon.png">
-    <link rel="manifest" href="/static/manifest.json">
+    <link rel="manifest" href="/static/manifest.json?v=2">
     <meta name="theme-color" content="#c9b074">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Évangile LDC">
+    <meta name="apple-mobile-web-app-title" content="Évangile">
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
@@ -26,7 +26,12 @@
 <body class="page-main">
     <main class="container">
 
-        <div class="diptyque" id="diptyque">
+        <!-- Accueil : les deux saintes. Dès qu'un éclairage est demandé, le
+             portrait de la seule source interrogée prend le relais. -->
+        <img id="diptyque-accueil" class="diptyque-accueil" src="/static/diptyque.png?v=1"
+             srcset="/static/diptyque.png?v=1 1x, /static/diptyque@2x.png?v=1 2x"
+             width="292" height="160" alt="Sainte Faustine et Luisa Piccarreta"/>
+        <div class="diptyque diptyque-cache" id="diptyque">
             <span class="portrait" data-source="luisa">
                 <img src="/static/luisa.jpg?v=6" alt="Luisa Piccarreta"/>
             </span>
@@ -354,6 +359,16 @@
             });
         }
 
+        // En-tête : diptyque fixe à l'accueil ; pendant et après l'éclairage,
+        // seul le portrait de la source choisie (animé au changement).
+        const diptyqueAccueil = document.getElementById('diptyque-accueil');
+
+        function afficherPortraitSource() {
+            if (!diptyqueAccueil || diptyqueAccueil.hidden) return;
+            diptyqueAccueil.hidden = true;
+            diptyque.classList.remove('diptyque-cache');
+        }
+
         function basculerVersEvangile() {
             ecranChoix.style.display = 'none';
             ecranEvangile.style.display = '';
@@ -530,6 +545,7 @@
             resultats.style.display = 'none';
             spinner.style.display = 'flex';
             boutonEclairage.disabled = true;
+            afficherPortraitSource();
 
             try {
                 const formData = new FormData();
@@ -610,7 +626,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'evangile_ldc.txt';
+            a.download = `evangile_du_jour_${dateInput.value || new Date().toISOString().slice(0, 10)}.txt`;
             a.click();
             URL.revokeObjectURL(url);
         });

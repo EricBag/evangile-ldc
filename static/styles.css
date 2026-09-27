@@ -56,13 +56,12 @@ body {
 
 /* Même portrait que celui du diptyque : vertical, donc plus étroit que
    l'ancienne photo en paysage, pour ne pas occuper tout l'écran de connexion. */
-.login-photo {
-    width: 150px;
-    height: auto;
-    border: 1px solid #c9b074;
-    border-radius: 6px;
-    margin: 0 auto 0.6rem;
+.login-diptyque {
     display: block;
+    width: 292px;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto 0.6rem;
 }
 
 .login-title {
@@ -155,6 +154,20 @@ body {
 }
 
 /* Diptyque des portraits (Luisa, Sainte Faustine) */
+/* Diptyque fixe de l'accueil (image générée par make_diptyque.py) */
+.diptyque-accueil {
+    display: block;
+    width: 292px;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto 0.55rem;
+}
+
+.diptyque-accueil[hidden],
+.diptyque.diptyque-cache {
+    display: none;
+}
+
 .diptyque {
     --largeur-portrait: 138px;
     display: flex;

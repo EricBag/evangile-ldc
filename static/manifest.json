@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Évangile du jour à la lumière du Livre du Ciel",
-  "short_name": "Évangile LDC",
-  "description": "Évangile du jour avec éclairage du Livre du Ciel de Luisa Piccarreta",
+  "name": "Évangile du jour — Miséricorde et Divine Volonté",
+  "short_name": "Évangile",
+  "description": "L'Évangile du jour, forme ordinaire ou traditionnelle, à la lumière de sainte Faustine et de Luisa Piccarreta.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

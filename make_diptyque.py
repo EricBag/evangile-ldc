@@ -8,7 +8,7 @@ make_diptyque.py — Génère l'image d'accueil : deux médaillons côte à côt
 Les deux portraits reçoivent le même traitement : recadrage carré en buste,
 à la même échelle de visage ; harmonisation de luminosité et de saturation
 (fonctions de `make_portraits.py`) ; découpe ronde lissée ; bordure fine
-gris-bleu (#5a7a99, l'accent bleu de l'application). Le nom de chaque sainte
+dorée (#c9b074, celle des portraits de l'application). Le nom de chaque sainte
 est écrit dessous en Cormorant Garamond, la police des titres de l'app.
 
 Sources :
@@ -40,7 +40,7 @@ MARGE = 8               # marge autour de l'ensemble
 TAILLE_NOM = 17         # corps du nom
 ESPACE_NOM = 7          # entre le médaillon et le nom
 
-BLEU_GRIS = (90, 122, 153, 255)     # #5a7a99
+OR = (201, 176, 116, 255)           # #c9b074
 ENCRE = (74, 56, 32, 255)           # #4a3820, couleur des sous-titres
 
 #: Recadrages carrés (x0, y0, x1, y1), en buste, réglés à l'œil pour que les
@@ -69,7 +69,7 @@ def police(taille):
 
 
 def medaillon(source, boite, diametre, bordure):
-    """Portrait harmonisé, découpé en disque, cerclé de gris-bleu (RGBA)."""
+    """Portrait harmonisé, découpé en disque, cerclé d'or (RGBA)."""
     image = Image.open(os.path.join(RACINE, *source)).convert("RGB").crop(boite)
     grand = diametre * SURECHANTILLONNAGE
     image = harmoniser(image.resize((grand, grand), Image.LANCZOS), en_gris=False)
@@ -82,7 +82,7 @@ def medaillon(source, boite, diametre, bordure):
     trait = round(bordure * SURECHANTILLONNAGE)
     ImageDraw.Draw(disque).ellipse((trait // 2, trait // 2, grand - 1 - trait // 2,
                                     grand - 1 - trait // 2),
-                                   outline=BLEU_GRIS, width=trait)
+                                   outline=OR, width=trait)
     return disque.resize((diametre, diametre), Image.LANCZOS), image
 
 

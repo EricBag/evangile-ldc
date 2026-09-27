@@ -4,16 +4,16 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Accès protégé — Évangile du jour</title>
-    <link rel="stylesheet" href="/static/styles.css?v=8"/>
+    <link rel="stylesheet" href="/static/styles.css?v=9"/>
 
     <link rel="apple-touch-icon" sizes="180x180" href="/static/icon-180.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon.png">
-    <link rel="manifest" href="/static/manifest.json">
+    <link rel="manifest" href="/static/manifest.json?v=2">
     <meta name="theme-color" content="#c9b074">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Évangile LDC">
+    <meta name="apple-mobile-web-app-title" content="Évangile">
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
@@ -24,7 +24,9 @@
 </head>
 <body class="page-login">
     <main class="login-container">
-        <img src="/static/luisa.jpg?v=6" alt="Luisa Piccarreta" class="login-photo"/>
+        <img class="login-diptyque" src="/static/diptyque.png?v=1"
+             srcset="/static/diptyque.png?v=1 1x, /static/diptyque@2x.png?v=1 2x"
+             width="292" height="160" alt="Sainte Faustine et Luisa Piccarreta"/>
         <h1 class="login-title">Accès protégé</h1>
         <p class="login-subtitle">Veuillez saisir le mot de passe pour accéder à l'application.</p>
 
